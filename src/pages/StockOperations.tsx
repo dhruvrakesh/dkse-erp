@@ -21,6 +21,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { GRNCSVUpload } from "@/components/csv/GRNCSVUpload"
+import { IssueCSVUpload } from "@/components/csv/IssueCSVUpload"
 
 const StockOperations = () => {
   const [selectedItem, setSelectedItem] = useState("")
@@ -204,134 +206,151 @@ const StockOperations = () => {
         </TabsList>
 
         <TabsContent value="grn" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Template Download */}
-            <div className="lg:col-span-1">
-              <TemplateDownload
-                templateType="grn"
-                title="Download GRN Template"
-                description="CSV template for bulk GRN entry with sample data and all required fields"
-                showPreview={false}
-              />
-            </div>
+          <Tabs defaultValue="single" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="single">Single Entry</TabsTrigger>
+              <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
+            </TabsList>
 
-            {/* GRN Form */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Stock Receipt
-                  </CardTitle>
-                  <CardDescription>Record incoming stock items</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleGRNSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="grn_number">GRN Number *</Label>
-                        <Input
-                          id="grn_number"
-                          name="grn_number"
-                          placeholder="GRN-001"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="date">Date *</Label>
-                        <Input
-                          id="date"
-                          name="date"
-                          type="date"
-                          defaultValue={new Date().toISOString().split('T')[0]}
-                          required
-                        />
-                      </div>
-                    </div>
+            <TabsContent value="single" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Template Download */}
+                <div className="lg:col-span-1">
+                  <TemplateDownload
+                    templateType="grn"
+                    title="Download GRN Template"
+                    description="CSV template for bulk GRN entry with sample data and all required fields"
+                    showPreview={false}
+                  />
+                </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="item_code">Item *</Label>
-                      <ItemCombobox
-                        items={items}
-                        value={selectedItem}
-                        onValueChange={setSelectedItem}
-                        placeholder="Search and select item..."
-                        showStockLevel={true}
-                        isLoading={itemsLoading}
-                      />
-                    </div>
+                {/* GRN Form */}
+                <div className="lg:col-span-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Stock Receipt
+                      </CardTitle>
+                      <CardDescription>Record incoming stock items</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleGRNSubmit} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="grn_number">GRN Number *</Label>
+                            <Input
+                              id="grn_number"
+                              name="grn_number"
+                              placeholder="GRN-001"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="date">Date *</Label>
+                            <Input
+                              id="date"
+                              name="date"
+                              type="date"
+                              defaultValue={new Date().toISOString().split('T')[0]}
+                              required
+                            />
+                          </div>
+                        </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="qty_received">Quantity Received *</Label>
-                        <Input
-                          id="qty_received"
-                          name="qty_received"
-                          type="number"
-                          step="0.01"
-                          placeholder="0"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="uom">UOM</Label>
-                        <Input
-                          id="uom"
-                          name="uom"
-                          value={selectedItemDetails?.uom || ''}
-                          readOnly
-                          placeholder="Select item first"
-                        />
-                      </div>
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="item_code">Item *</Label>
+                          <ItemCombobox
+                            items={items}
+                            value={selectedItem}
+                            onValueChange={setSelectedItem}
+                            placeholder="Search and select item..."
+                            showStockLevel={true}
+                            isLoading={itemsLoading}
+                          />
+                        </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="invoice_number">Invoice Number</Label>
-                        <Input
-                          id="invoice_number"
-                          name="invoice_number"
-                          placeholder="INV-001"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="amount_inr">Amount (INR)</Label>
-                        <Input
-                          id="amount_inr"
-                          name="amount_inr"
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="qty_received">Quantity Received *</Label>
+                            <Input
+                              id="qty_received"
+                              name="qty_received"
+                              type="number"
+                              step="0.01"
+                              placeholder="0"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="uom">UOM</Label>
+                            <Input
+                              id="uom"
+                              name="uom"
+                              value={selectedItemDetails?.uom || ''}
+                              readOnly
+                              placeholder="Select item first"
+                            />
+                          </div>
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="vendor">Vendor</Label>
-                      <Input
-                        id="vendor"
-                        name="vendor"
-                        placeholder="Vendor name"
-                      />
-                    </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="invoice_number">Invoice Number</Label>
+                            <Input
+                              id="invoice_number"
+                              name="invoice_number"
+                              placeholder="INV-001"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="amount_inr">Amount (INR)</Label>
+                            <Input
+                              id="amount_inr"
+                              name="amount_inr"
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="remarks">Remarks</Label>
-                      <Textarea
-                        id="remarks"
-                        name="remarks"
-                        placeholder="Additional notes..."
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="vendor">Vendor</Label>
+                          <Input
+                            id="vendor"
+                            name="vendor"
+                            placeholder="Vendor name"
+                          />
+                        </div>
 
-                    <Button type="submit" className="w-full" disabled={createGRNMutation.isPending || !selectedItem}>
-                      {createGRNMutation.isPending ? "Processing..." : "Add GRN Entry"}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="remarks">Remarks</Label>
+                          <Textarea
+                            id="remarks"
+                            name="remarks"
+                            placeholder="Additional notes..."
+                          />
+                        </div>
+
+                        <Button type="submit" className="w-full" disabled={createGRNMutation.isPending || !selectedItem}>
+                          {createGRNMutation.isPending ? "Processing..." : "Add GRN Entry"}
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="bulk">
+              <GRNCSVUpload onUploadComplete={() => {
+                queryClient.invalidateQueries({ queryKey: ['recent-grns-detailed'] });
+                queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
+                queryClient.invalidateQueries({ queryKey: ['items-with-stock'] });
+              }} />
+            </TabsContent>
+          </Tabs>
 
           {/* Recent GRNs */}
           <Card>
@@ -365,106 +384,123 @@ const StockOperations = () => {
         </TabsContent>
 
         <TabsContent value="issue" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Template Download */}
-            <div className="lg:col-span-1">
-              <TemplateDownload
-                templateType="issue"
-                title="Download Issue Template"
-                description="CSV template for bulk issue entry with sample data and all required fields"
-                showPreview={false}
-              />
-            </div>
+          <Tabs defaultValue="single" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="single">Single Entry</TabsTrigger>
+              <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
+            </TabsList>
 
-            {/* Issue Form */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Minus className="mr-2 h-4 w-4" />
-                    Issue Stock
-                  </CardTitle>
-                  <CardDescription>Record stock consumption/issues</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleIssueSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="date">Date *</Label>
-                      <Input
-                        id="date"
-                        name="date"
-                        type="date"
-                        defaultValue={new Date().toISOString().split('T')[0]}
-                        required
-                      />
-                    </div>
+            <TabsContent value="single" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Template Download */}
+                <div className="lg:col-span-1">
+                  <TemplateDownload
+                    templateType="issue"
+                    title="Download Issue Template"
+                    description="CSV template for bulk issue entry with sample data and all required fields"
+                    showPreview={false}
+                  />
+                </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="item_code">Item *</Label>
-                      <ItemCombobox
-                        items={items}
-                        value={selectedItem}
-                        onValueChange={setSelectedItem}
-                        placeholder="Search and select item..."
-                        showStockLevel={true}
-                        isLoading={itemsLoading}
-                      />
-                    </div>
-
-                    {selectedItemDetails && (
-                      <div className="p-3 bg-muted rounded-lg">
-                        <div className="text-sm text-muted-foreground">
-                          Available Stock: <span className="font-medium text-foreground">{selectedItemDetails.current_qty} {selectedItemDetails.uom}</span>
+                {/* Issue Form */}
+                <div className="lg:col-span-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Minus className="mr-2 h-4 w-4" />
+                        Issue Stock
+                      </CardTitle>
+                      <CardDescription>Record stock consumption/issues</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleIssueSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="date">Date *</Label>
+                          <Input
+                            id="date"
+                            name="date"
+                            type="date"
+                            defaultValue={new Date().toISOString().split('T')[0]}
+                            required
+                          />
                         </div>
-                      </div>
-                    )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="qty_issued">Quantity Issued *</Label>
-                      <Input
-                        id="qty_issued"
-                        name="qty_issued"
-                        type="number"
-                        step="0.01"
-                        placeholder="0"
-                        max={selectedItemDetails?.current_qty || undefined}
-                        required
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="item_code">Item *</Label>
+                          <ItemCombobox
+                            items={items}
+                            value={selectedItem}
+                            onValueChange={setSelectedItem}
+                            placeholder="Search and select item..."
+                            showStockLevel={true}
+                            isLoading={itemsLoading}
+                          />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="purpose">Purpose *</Label>
-                      <select 
-                        name="purpose" 
-                        required
-                        className="w-full px-3 py-2 border border-input rounded-md bg-background"
-                      >
-                        <option value="">Select purpose</option>
-                        <option value="production">Production</option>
-                        <option value="maintenance">Maintenance</option>
-                        <option value="r&d">R&D</option>
-                        <option value="sample">Sample</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
+                        {selectedItemDetails && (
+                          <div className="p-3 bg-muted rounded-lg">
+                            <div className="text-sm text-muted-foreground">
+                              Available Stock: <span className="font-medium text-foreground">{selectedItemDetails.current_qty} {selectedItemDetails.uom}</span>
+                            </div>
+                          </div>
+                        )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="remarks">Remarks</Label>
-                      <Textarea
-                        id="remarks"
-                        name="remarks"
-                        placeholder="Additional notes..."
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="qty_issued">Quantity Issued *</Label>
+                          <Input
+                            id="qty_issued"
+                            name="qty_issued"
+                            type="number"
+                            step="0.01"
+                            placeholder="0"
+                            max={selectedItemDetails?.current_qty || undefined}
+                            required
+                          />
+                        </div>
 
-                    <Button type="submit" className="w-full" disabled={createIssueMutation.isPending || !selectedItem}>
-                      {createIssueMutation.isPending ? "Processing..." : "Issue Stock"}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="purpose">Purpose *</Label>
+                          <select 
+                            name="purpose" 
+                            required
+                            className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                          >
+                            <option value="">Select purpose</option>
+                            <option value="production">Production</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="r&d">R&D</option>
+                            <option value="sample">Sample</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="remarks">Remarks</Label>
+                          <Textarea
+                            id="remarks"
+                            name="remarks"
+                            placeholder="Additional notes..."
+                          />
+                        </div>
+
+                        <Button type="submit" className="w-full" disabled={createIssueMutation.isPending || !selectedItem}>
+                          {createIssueMutation.isPending ? "Processing..." : "Issue Stock"}
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="bulk">
+              <IssueCSVUpload onUploadComplete={() => {
+                queryClient.invalidateQueries({ queryKey: ['recent-issues-detailed'] });
+                queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
+                queryClient.invalidateQueries({ queryKey: ['items-with-stock'] });
+              }} />
+            </TabsContent>
+          </Tabs>
 
           {/* Recent Issues */}
           <Card>
