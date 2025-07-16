@@ -1461,6 +1461,15 @@ export type Database = {
         }
         Returns: string
       }
+      generate_item_code_with_validation: {
+        Args: {
+          category_name: string
+          qualifier?: string
+          size_mm?: string
+          gsm?: number
+        }
+        Returns: Json
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1483,6 +1492,15 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      validate_item_code_params: {
+        Args: {
+          category_name: string
+          qualifier?: string
+          size_mm?: string
+          gsm?: number
+        }
+        Returns: Json
       }
     }
     Enums: {

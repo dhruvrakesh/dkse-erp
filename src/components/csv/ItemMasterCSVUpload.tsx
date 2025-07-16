@@ -179,40 +179,66 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
     for (let i = 0; i < dataObjects.length; i++) {
       const row = dataObjects[i];
       
-      // Generate item code to check for conflicts
+      // Find category
       const category = categories.find(cat => 
         cat.category_name.toLowerCase() === row.category_name?.toLowerCase()
       );
       
       if (category) {
         try {
-          const { data: generatedCode, error } = await supabase
-            .rpc('generate_item_code', {
+          // Use enhanced validation and generation
+          const { data: result, error } = await supabase
+            .rpc('generate_item_code_with_validation', {
               category_name: category.category_name,
               qualifier: row.qualifier || '',
               size_mm: row.size_mm || '',
               gsm: row.gsm ? parseFloat(row.gsm) : null
             });
 
-          if (!error && generatedCode) {
-            // Check if item code already exists
-            const { data: existingItem, error: checkError } = await supabase
-              .from('item_master')
-              .select('item_code, item_name')
-              .eq('item_code', generatedCode)
-              .single();
+          if (!error && result) {
+            const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
+            
+            if (parsedResult.success) {
+              // Check if item code would conflict (though enhanced function handles uniqueness)
+              const { data: existingItem, error: checkError } = await supabase
+                .from('item_master')
+                .select('item_code, item_name')
+                .eq('item_code', parsedResult.item_code)
+                .maybeSingle();
 
-            if (!checkError && existingItem) {
-              conflicts.push({
-                row: i + 2,
-                item_code: generatedCode,
-                action: 'skip',
-                data: { ...row, generated_code: generatedCode }
+              if (!checkError && existingItem) {
+                conflicts.push({
+                  row: i + 2,
+                  item_code: parsedResult.item_code,
+                  action: 'skip',
+                  data: { 
+                    ...row, 
+                    generated_code: parsedResult.item_code,
+                    validation_warnings: parsedResult.validation?.warnings || []
+                  }
+                });
+              }
+            } else {
+              // Handle validation errors
+              const validationErrors = parsedResult.validation?.errors || [];
+              validationErrors.forEach((error: string) => {
+                conflicts.push({
+                  row: i + 2,
+                  item_code: 'VALIDATION_ERROR',
+                  action: 'error',
+                  data: { ...row, validation_error: error }
+                });
               });
             }
           }
         } catch (error) {
           console.error('Error checking for conflicts:', error);
+          conflicts.push({
+            row: i + 2,
+            item_code: 'GENERATION_ERROR',
+            action: 'error',
+            data: { ...row, generation_error: error instanceof Error ? error.message : 'Unknown error' }
+          });
         }
       }
     }
@@ -354,9 +380,9 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
               continue;
             }
 
-            // Generate item code
-            const { data: itemCode, error: codeError } = await supabase
-              .rpc('generate_item_code', {
+            // Generate item code using enhanced validation
+            const { data: generationResult, error: codeError } = await supabase
+              .rpc('generate_item_code_with_validation', {
                 category_name: category.category_name,
                 qualifier: item.qualifier || '',
                 size_mm: item.size_mm || '',
@@ -369,6 +395,23 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
                 message: `Error generating item code: ${codeError.message}`
               });
               continue;
+            }
+
+            const parsedResult = typeof generationResult === 'string' ? JSON.parse(generationResult) : generationResult;
+            
+            if (!parsedResult.success) {
+              allErrors.push({
+                row: item.originalRowIndex,
+                message: `Item code generation failed: ${parsedResult.validation?.errors?.join(', ') || 'Unknown error'}`
+              });
+              continue;
+            }
+
+            const itemCode = parsedResult.item_code;
+            
+            // Log any warnings
+            if (parsedResult.validation?.warnings?.length > 0) {
+              console.warn(`Row ${item.originalRowIndex} warnings:`, parsedResult.validation.warnings);
             }
 
             // Check if we should update existing item
