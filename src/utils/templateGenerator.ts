@@ -49,15 +49,26 @@ export const templateConfigs: Record<string, TemplateConfig> = {
         remarks: 'Regular delivery'
       },
       {
-        grn_number: 'GRN002',
-        date: '2024-01-16',
+        grn_number: 'GRN001',
+        date: '2024-01-15',
         item_code: 'PKG001',
         qty_received: '200',
         uom: 'PCS',
-        invoice_number: 'INV002',
+        invoice_number: 'INV001',
         amount_inr: '1500',
-        vendor: 'XYZ Packaging',
-        remarks: 'Urgent order'
+        vendor: 'ABC Supplier',
+        remarks: 'Same GRN with different item'
+      },
+      {
+        grn_number: 'GRN002',
+        date: '2024-01-16',
+        item_code: 'RAW002',
+        qty_received: '50',
+        uom: 'KG',
+        invoice_number: 'INV002',
+        amount_inr: '2500',
+        vendor: 'XYZ Supplier',
+        remarks: 'Single item GRN'
       }
     ]
   },

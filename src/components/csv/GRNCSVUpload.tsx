@@ -183,41 +183,42 @@ export const GRNCSVUpload: React.FC<GRNCSVUploadProps> = ({
   const checkDuplicateGRNs = async (dataObjects: any[]): Promise<ValidationError[]> => {
     const errors: ValidationError[] = [];
     
-    // Get all GRN numbers from the CSV
-    const grnNumbers = dataObjects.map(row => row.grn_number);
-    
-    // Check for duplicates within the CSV
+    // Check for duplicates within the CSV (grn_number + item_code combination)
     const seen = new Set();
     dataObjects.forEach((row, index) => {
-      if (seen.has(row.grn_number)) {
+      const grnItemKey = `${row.grn_number}|${row.item_code}`;
+      if (seen.has(grnItemKey)) {
         errors.push({
           row: index + 2,
           field: 'grn_number',
-          message: `Duplicate GRN number '${row.grn_number}' found in CSV`,
+          message: `Duplicate GRN number '${row.grn_number}' with item code '${row.item_code}' found in CSV`,
           data: row
         });
       }
-      seen.add(row.grn_number);
+      seen.add(grnItemKey);
     });
 
-    // Check for duplicates in database
+    // Check for duplicates in database (grn_number + item_code combination)
     const { data: existingGRNs, error } = await supabase
       .from('grn_log')
-      .select('grn_number')
-      .in('grn_number', grnNumbers);
+      .select('grn_number, item_code')
+      .in('grn_number', [...new Set(dataObjects.map(row => row.grn_number))]);
     
     if (error) {
       throw error;
     }
 
-    const existingGRNNumbers = new Set(existingGRNs?.map(grn => grn.grn_number) || []);
+    const existingGRNItemCombinations = new Set(
+      existingGRNs?.map(grn => `${grn.grn_number}|${grn.item_code}`) || []
+    );
     
     dataObjects.forEach((row, index) => {
-      if (existingGRNNumbers.has(row.grn_number)) {
+      const grnItemKey = `${row.grn_number}|${row.item_code}`;
+      if (existingGRNItemCombinations.has(grnItemKey)) {
         errors.push({
           row: index + 2,
           field: 'grn_number',
-          message: `GRN number '${row.grn_number}' already exists in database`,
+          message: `GRN number '${row.grn_number}' with item code '${row.item_code}' already exists in database`,
           data: row
         });
       }
@@ -421,7 +422,7 @@ export const GRNCSVUpload: React.FC<GRNCSVUploadProps> = ({
           Bulk GRN Upload
         </CardTitle>
         <CardDescription>
-          Upload multiple GRN records from a CSV file
+          Upload multiple GRN records from a CSV file. Same GRN number can be used for multiple items.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
