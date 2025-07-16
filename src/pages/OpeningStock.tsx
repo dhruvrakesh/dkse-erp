@@ -58,6 +58,8 @@ const OpeningStock = () => {
             category_id: categoryId,
             uom: row.uom || 'PCS',
             status: 'active'
+          }, { 
+            onConflict: 'item_code' 
           });
 
         if (itemError) throw itemError;
@@ -71,16 +73,20 @@ const OpeningStock = () => {
             item_code: row.item_code,
             opening_qty: openingQty,
             current_qty: openingQty
+          }, { 
+            onConflict: 'item_code' 
           });
 
         if (stockError) throw stockError;
 
         results.success++;
       } catch (error) {
+        console.error(`Error processing row ${i + 1}:`, error);
         results.errors.push({
           row: i + 1,
           message: error instanceof Error ? error.message : 'Unknown error',
-          data: row
+          data: row,
+          error: error
         });
       }
     }
