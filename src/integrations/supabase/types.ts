@@ -223,6 +223,36 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_stock_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          record_count: number
+          snapshot_data: Json
+          snapshot_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          record_count?: number
+          snapshot_data: Json
+          snapshot_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          record_count?: number
+          snapshot_data?: Json
+          snapshot_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dkegl_adhesive_coating: {
         Row: {
           created_at: string | null
@@ -1299,6 +1329,45 @@ export type Database = {
           },
         ]
       }
+      stock_analytics_queries: {
+        Row: {
+          created_at: string
+          date_range_end: string | null
+          date_range_start: string | null
+          execution_time_ms: number | null
+          filters: Json | null
+          id: string
+          query_result: Json | null
+          query_text: string
+          query_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          execution_time_ms?: number | null
+          filters?: Json | null
+          id?: string
+          query_result?: Json | null
+          query_text: string
+          query_type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          execution_time_ms?: number | null
+          filters?: Json | null
+          id?: string
+          query_result?: Json | null
+          query_text?: string
+          query_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1380,6 +1449,10 @@ export type Database = {
       }
     }
     Functions: {
+      capture_daily_stock_snapshot: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       count_adhesive_started: {
         Args: Record<PropertyKey, never>
         Returns: {

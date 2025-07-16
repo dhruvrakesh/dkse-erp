@@ -15,7 +15,7 @@ import StockSummary from "./pages/StockSummary";
 import OpeningStockSummary from "./pages/OpeningStockSummary";
 import Categories from "./pages/Categories";
 import StockAlerts from "./pages/StockAlerts";
-import Index from "./pages/Index";
+import LegacyData from "./pages/LegacyData";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,7 +45,7 @@ const App = () => (
                     <Route path="/opening-stock-summary" element={<OpeningStockSummary />} />
                     <Route path="/categories" element={<Categories />} />
                     <Route path="/stock-alerts" element={<StockAlerts />} />
-                    <Route path="/legacy" element={<Index />} />
+                    <Route path="/legacy" element={<LegacyData />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
