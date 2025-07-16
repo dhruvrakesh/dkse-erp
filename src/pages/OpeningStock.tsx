@@ -1,5 +1,7 @@
+
 import React from 'react';
 import { CSVUpload } from '@/components/csv/CSVUpload';
+import { TemplateDownload } from '@/components/ui/template-download';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -93,33 +95,43 @@ const OpeningStock = () => {
         </p>
       </div>
 
-      <div className="max-w-4xl">
-        <CSVUpload
-          title="Opening Stock CSV Upload"
-          description="Upload a CSV file with opening stock data. Required columns: item_code, opening_qty. Optional: item_name, category, uom"
-          expectedHeaders={expectedHeaders}
-          onDataProcessed={processOpeningStock}
-        />
-        
-        <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h3 className="font-semibold mb-2">CSV Format Example:</h3>
-          <pre className="text-sm overflow-x-auto">
+      <div className="max-w-4xl grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <TemplateDownload
+            templateType="openingStock"
+            title="Download Template"
+            description="CSV template with sample opening stock data. Required columns: item_code, opening_qty. Optional: item_name, category, uom"
+          />
+        </div>
+
+        <div className="lg:col-span-2">
+          <CSVUpload
+            title="Opening Stock CSV Upload"
+            description="Upload a CSV file with opening stock data. Required columns: item_code, opening_qty. Optional: item_name, category, uom"
+            expectedHeaders={expectedHeaders}
+            onDataProcessed={processOpeningStock}
+          />
+        </div>
+      </div>
+      
+      <div className="mt-6 p-4 bg-muted rounded-lg">
+        <h3 className="font-semibold mb-2">CSV Format Example:</h3>
+        <pre className="text-sm overflow-x-auto">
 {`item_code,item_name,category,opening_qty,uom
 RAW001,Raw Material 1,Raw Materials,100,KG
 PKG001,Packaging Item 1,Packaging,500,PCS
 FIN001,Finished Product 1,Finished Goods,50,PCS`}
-          </pre>
-          
-          <div className="mt-4">
-            <h4 className="font-medium mb-2">Important Notes:</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• item_code and opening_qty are required fields</li>
-              <li>• Categories will be auto-created if they don't exist</li>
-              <li>• Default UOM is 'PCS' if not specified</li>
-              <li>• Existing items will be updated with new opening stock</li>
-              <li>• Current stock will be set to opening stock value</li>
-            </ul>
-          </div>
+        </pre>
+        
+        <div className="mt-4">
+          <h4 className="font-medium mb-2">Important Notes:</h4>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• item_code and opening_qty are required fields</li>
+            <li>• Categories will be auto-created if they don't exist</li>
+            <li>• Default UOM is 'PCS' if not specified</li>
+            <li>• Existing items will be updated with new opening stock</li>
+            <li>• Current stock will be set to opening stock value</li>
+          </ul>
         </div>
       </div>
     </div>

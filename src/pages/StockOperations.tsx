@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { TemplateDownload } from "@/components/ui/template-download"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Minus } from "lucide-react"
 import {
@@ -193,28 +194,199 @@ const StockOperations = () => {
         </TabsList>
 
         <TabsContent value="grn" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Template Download */}
+            <div className="lg:col-span-1">
+              <TemplateDownload
+                templateType="grn"
+                title="Download GRN Template"
+                description="CSV template for bulk GRN entry with sample data and all required fields"
+                showPreview={false}
+              />
+            </div>
+
             {/* GRN Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Stock Receipt
-                </CardTitle>
-                <CardDescription>Record incoming stock items</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleGRNSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Stock Receipt
+                  </CardTitle>
+                  <CardDescription>Record incoming stock items</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleGRNSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="grn_number">GRN Number *</Label>
+                        <Input
+                          id="grn_number"
+                          name="grn_number"
+                          placeholder="GRN-001"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="date">Date *</Label>
+                        <Input
+                          id="date"
+                          name="date"
+                          type="date"
+                          defaultValue={new Date().toISOString().split('T')[0]}
+                          required
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="grn_number">GRN Number *</Label>
-                      <Input
-                        id="grn_number"
-                        name="grn_number"
-                        placeholder="GRN-001"
+                      <Label htmlFor="item_code">Item *</Label>
+                      <Select 
+                        name="item_code" 
+                        value={selectedItem} 
+                        onValueChange={setSelectedItem}
                         required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select item" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {items?.map((item) => (
+                            <SelectItem key={item.item_code} value={item.item_code}>
+                              {item.item_name} ({item.item_code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="qty_received">Quantity Received *</Label>
+                        <Input
+                          id="qty_received"
+                          name="qty_received"
+                          type="number"
+                          step="0.01"
+                          placeholder="0"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="uom">UOM</Label>
+                        <Input
+                          id="uom"
+                          name="uom"
+                          value={selectedItemDetails?.uom || ''}
+                          readOnly
+                          placeholder="Select item first"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="invoice_number">Invoice Number</Label>
+                        <Input
+                          id="invoice_number"
+                          name="invoice_number"
+                          placeholder="INV-001"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="amount_inr">Amount (INR)</Label>
+                        <Input
+                          id="amount_inr"
+                          name="amount_inr"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="vendor">Vendor</Label>
+                      <Input
+                        id="vendor"
+                        name="vendor"
+                        placeholder="Vendor name"
                       />
                     </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="remarks">Remarks</Label>
+                      <Textarea
+                        id="remarks"
+                        name="remarks"
+                        placeholder="Additional notes..."
+                      />
+                    </div>
+
+                    <Button type="submit" className="w-full" disabled={createGRNMutation.isPending}>
+                      {createGRNMutation.isPending ? "Processing..." : "Add GRN Entry"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Recent GRNs */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent GRN Entries</CardTitle>
+              <CardDescription>Latest stock receipts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>GRN No.</TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentGRNs?.slice(0, 10).map((grn) => (
+                    <TableRow key={grn.id}>
+                      <TableCell className="font-mono">{grn.grn_number}</TableCell>
+                      <TableCell>{grn.item_master?.item_name}</TableCell>
+                      <TableCell className="font-mono text-green-600">+{grn.qty_received}</TableCell>
+                      <TableCell>{new Date(grn.date).toLocaleDateString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="issue" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Template Download */}
+            <div className="lg:col-span-1">
+              <TemplateDownload
+                templateType="issue"
+                title="Download Issue Template"
+                description="CSV template for bulk issue entry with sample data and all required fields"
+                showPreview={false}
+              />
+            </div>
+
+            {/* Issue Form */}
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Minus className="mr-2 h-4 w-4" />
+                    Issue Stock
+                  </CardTitle>
+                  <CardDescription>Record stock consumption/issues</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleIssueSubmit} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="date">Date *</Label>
                       <Input
@@ -225,250 +397,103 @@ const StockOperations = () => {
                         required
                       />
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="item_code">Item *</Label>
-                    <Select 
-                      name="item_code" 
-                      value={selectedItem} 
-                      onValueChange={setSelectedItem}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select item" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {items?.map((item) => (
-                          <SelectItem key={item.item_code} value={item.item_code}>
-                            {item.item_name} ({item.item_code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="qty_received">Quantity Received *</Label>
+                      <Label htmlFor="item_code">Item *</Label>
+                      <Select 
+                        name="item_code" 
+                        value={selectedItem} 
+                        onValueChange={setSelectedItem}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select item" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {items?.map((item) => (
+                            <SelectItem key={item.item_code} value={item.item_code}>
+                              {item.item_name} ({item.item_code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="qty_issued">Quantity Issued *</Label>
                       <Input
-                        id="qty_received"
-                        name="qty_received"
+                        id="qty_issued"
+                        name="qty_issued"
                         type="number"
                         step="0.01"
                         placeholder="0"
                         required
                       />
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="uom">UOM</Label>
-                      <Input
-                        id="uom"
-                        name="uom"
-                        value={selectedItemDetails?.uom || ''}
-                        readOnly
-                        placeholder="Select item first"
+                      <Label htmlFor="purpose">Purpose *</Label>
+                      <Select name="purpose" required>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select purpose" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="production">Production</SelectItem>
+                          <SelectItem value="maintenance">Maintenance</SelectItem>
+                          <SelectItem value="r&d">R&D</SelectItem>
+                          <SelectItem value="sample">Sample</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="remarks">Remarks</Label>
+                      <Textarea
+                        id="remarks"
+                        name="remarks"
+                        placeholder="Additional notes..."
                       />
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="invoice_number">Invoice Number</Label>
-                      <Input
-                        id="invoice_number"
-                        name="invoice_number"
-                        placeholder="INV-001"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="amount_inr">Amount (INR)</Label>
-                      <Input
-                        id="amount_inr"
-                        name="amount_inr"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="vendor">Vendor</Label>
-                    <Input
-                      id="vendor"
-                      name="vendor"
-                      placeholder="Vendor name"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="remarks">Remarks</Label>
-                    <Textarea
-                      id="remarks"
-                      name="remarks"
-                      placeholder="Additional notes..."
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={createGRNMutation.isPending}>
-                    {createGRNMutation.isPending ? "Processing..." : "Add GRN Entry"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            {/* Recent GRNs */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent GRN Entries</CardTitle>
-                <CardDescription>Latest stock receipts</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>GRN No.</TableHead>
-                      <TableHead>Item</TableHead>
-                      <TableHead>Qty</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentGRNs?.slice(0, 10).map((grn) => (
-                      <TableRow key={grn.id}>
-                        <TableCell className="font-mono">{grn.grn_number}</TableCell>
-                        <TableCell>{grn.item_master?.item_name}</TableCell>
-                        <TableCell className="font-mono text-green-600">+{grn.qty_received}</TableCell>
-                        <TableCell>{new Date(grn.date).toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                    <Button type="submit" className="w-full" disabled={createIssueMutation.isPending}>
+                      {createIssueMutation.isPending ? "Processing..." : "Issue Stock"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </TabsContent>
 
-        <TabsContent value="issue" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Issue Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Minus className="mr-2 h-4 w-4" />
-                  Issue Stock
-                </CardTitle>
-                <CardDescription>Record stock consumption/issues</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleIssueSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Date *</Label>
-                    <Input
-                      id="date"
-                      name="date"
-                      type="date"
-                      defaultValue={new Date().toISOString().split('T')[0]}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="item_code">Item *</Label>
-                    <Select 
-                      name="item_code" 
-                      value={selectedItem} 
-                      onValueChange={setSelectedItem}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select item" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {items?.map((item) => (
-                          <SelectItem key={item.item_code} value={item.item_code}>
-                            {item.item_name} ({item.item_code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="qty_issued">Quantity Issued *</Label>
-                    <Input
-                      id="qty_issued"
-                      name="qty_issued"
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="purpose">Purpose *</Label>
-                    <Select name="purpose" required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select purpose" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="production">Production</SelectItem>
-                        <SelectItem value="maintenance">Maintenance</SelectItem>
-                        <SelectItem value="r&d">R&D</SelectItem>
-                        <SelectItem value="sample">Sample</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="remarks">Remarks</Label>
-                    <Textarea
-                      id="remarks"
-                      name="remarks"
-                      placeholder="Additional notes..."
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={createIssueMutation.isPending}>
-                    {createIssueMutation.isPending ? "Processing..." : "Issue Stock"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            {/* Recent Issues */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Issues</CardTitle>
-                <CardDescription>Latest stock consumption</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead>Qty</TableHead>
-                      <TableHead>Purpose</TableHead>
-                      <TableHead>Date</TableHead>
+          {/* Recent Issues */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Issues</CardTitle>
+              <CardDescription>Latest stock consumption</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>Purpose</TableHead>
+                    <TableHead>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentIssues?.slice(0, 10).map((issue) => (
+                    <TableRow key={issue.id}>
+                      <TableCell>{issue.item_master?.item_name}</TableCell>
+                      <TableCell className="font-mono text-red-600">-{issue.qty_issued}</TableCell>
+                      <TableCell>{issue.purpose}</TableCell>
+                      <TableCell>{new Date(issue.date).toLocaleDateString()}</TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentIssues?.slice(0, 10).map((issue) => (
-                      <TableRow key={issue.id}>
-                        <TableCell>{issue.item_master?.item_name}</TableCell>
-                        <TableCell className="font-mono text-red-600">-{issue.qty_issued}</TableCell>
-                        <TableCell>{issue.purpose}</TableCell>
-                        <TableCell>{new Date(issue.date).toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
