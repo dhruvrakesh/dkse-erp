@@ -1,36 +1,57 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Key, Settings, ExternalLink, Check, X, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Key, Settings, ExternalLink, Check, X, RefreshCw, AlertCircle } from "lucide-react";
 
 export const IntegrationSettings = () => {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [testing, setTesting] = useState<string | null>(null);
   const [integrations, setIntegrations] = useState([
     {
+      id: "openai",
       name: "OpenAI",
       description: "AI-powered features and analytics",
       enabled: false,
       configured: false,
-      apiKey: "",
-      testConnection: false,
+      lastTested: null as Date | null,
+      connectionStatus: null as boolean | null,
     },
     {
-      name: "Email Service",
+      id: "email",
+      name: "Email Service", 
       description: "Send notifications and reports via email",
       enabled: false,
       configured: false,
-      apiKey: "",
-      testConnection: false,
+      lastTested: null as Date | null,
+      connectionStatus: null as boolean | null,
     },
   ]);
+
+  useEffect(() => {
+    checkApiStatus();
+  }, []);
+
+  const checkApiStatus = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-api-status');
+      if (error) throw error;
+      
+      setIntegrations(prev => prev.map(integration => ({
+        ...integration,
+        configured: data[integration.id]?.configured || false,
+      })));
+    } catch (error) {
+      console.error('Error checking API status:', error);
+    }
+  };
 
   if (!isAdmin) {
     return (
@@ -47,7 +68,7 @@ export const IntegrationSettings = () => {
     if (!integration.configured && !integration.enabled) {
       toast({
         title: "Configuration Required",
-        description: "Please configure the API key before enabling this integration",
+        description: `${integration.name} API is not configured in the system`,
         variant: "destructive",
       });
       return;
@@ -65,62 +86,41 @@ export const IntegrationSettings = () => {
     });
   };
 
-  const handleSaveApiKey = async (index: number) => {
-    setLoading(true);
-    try {
-      // This would save the API key to Supabase secrets
-      setIntegrations(prev => 
-        prev.map((item, i) => 
-          i === index ? { ...item, configured: true } : item
-        )
-      );
-
-      toast({
-        title: "Success",
-        description: "API key saved successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save API key",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleTestConnection = async (index: number) => {
-    setLoading(true);
+    const integration = integrations[index];
+    setTesting(integration.id);
+    
     try {
-      // This would test the API connection
+      const { data, error } = await supabase.functions.invoke('test-api-connection', {
+        body: { service: integration.id }
+      });
+      
+      if (error) throw error;
+
       setIntegrations(prev => 
         prev.map((item, i) => 
-          i === index ? { ...item, testConnection: true } : item
+          i === index ? { 
+            ...item, 
+            connectionStatus: data.success,
+            lastTested: new Date()
+          } : item
         )
       );
 
       toast({
-        title: "Success",
-        description: "Connection test successful",
+        title: data.success ? "Success" : "Connection Failed",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Connection test failed",
+        description: "Failed to test connection",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setTesting(null);
     }
-  };
-
-  const handleApiKeyChange = (index: number, value: string) => {
-    setIntegrations(prev => 
-      prev.map((item, i) => 
-        i === index ? { ...item, apiKey: value } : item
-      )
-    );
   };
 
   return (
@@ -146,67 +146,65 @@ export const IntegrationSettings = () => {
                       <Badge variant={integration.configured ? "default" : "secondary"}>
                         {integration.configured ? "Configured" : "Not Configured"}
                       </Badge>
-                      {integration.testConnection && (
-                        <Badge variant="outline" className="text-green-600">
-                          <Check className="h-3 w-3 mr-1" />
-                          Connected
-                        </Badge>
-                      )}
+                       {integration.connectionStatus === true && (
+                         <Badge variant="outline" className="text-green-600">
+                           <Check className="h-3 w-3 mr-1" />
+                           Connected
+                         </Badge>
+                       )}
+                       {integration.connectionStatus === false && (
+                         <Badge variant="outline" className="text-red-600">
+                           <X className="h-3 w-3 mr-1" />
+                           Failed
+                         </Badge>
+                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {integration.description}
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={integration.enabled}
-                  onCheckedChange={() => handleToggleIntegration(index)}
-                />
-              </div>
+                     <p className="text-sm text-muted-foreground">
+                       {integration.description}
+                     </p>
+                     {integration.lastTested && (
+                       <p className="text-xs text-muted-foreground">
+                         Last tested: {integration.lastTested.toLocaleString()}
+                       </p>
+                     )}
+                   </div>
+                 </div>
+                 <Switch
+                   checked={integration.enabled}
+                   onCheckedChange={() => handleToggleIntegration(index)}
+                 />
+               </div>
 
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor={`api-key-${index}`}>API Key</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id={`api-key-${index}`}
-                      type="password"
-                      value={integration.apiKey}
-                      onChange={(e) => handleApiKeyChange(index, e.target.value)}
-                      placeholder="Enter API key"
-                    />
-                    <Button 
-                      variant="outline" 
-                      onClick={() => handleSaveApiKey(index)}
-                      disabled={loading || !integration.apiKey}
-                    >
-                      Save
-                    </Button>
-                  </div>
-                </div>
-
-                {integration.configured && (
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleTestConnection(index)}
-                      disabled={loading}
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Test Connection
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => window.open(`https://docs.${integration.name.toLowerCase()}.com`, '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Documentation
-                    </Button>
-                  </div>
-                )}
-              </div>
+               <div className="space-y-3">
+                 {!integration.configured && (
+                   <div className="flex items-center gap-2 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                     <AlertCircle className="h-4 w-4 text-orange-600" />
+                     <p className="text-sm text-orange-800 dark:text-orange-200">
+                       This integration is not configured in the system. Contact an administrator to set up the API key.
+                     </p>
+                   </div>
+                 )}
+                 
+                 <div className="flex gap-2">
+                   <Button 
+                     variant="outline" 
+                     size="sm"
+                     onClick={() => handleTestConnection(index)}
+                     disabled={!integration.configured || testing === integration.id}
+                   >
+                     <RefreshCw className={`h-4 w-4 mr-2 ${testing === integration.id ? 'animate-spin' : ''}`} />
+                     Test Connection
+                   </Button>
+                   <Button 
+                     variant="outline" 
+                     size="sm"
+                     onClick={() => window.open(`https://docs.${integration.name.toLowerCase()}.com`, '_blank')}
+                   >
+                     <ExternalLink className="h-4 w-4 mr-2" />
+                     Documentation
+                   </Button>
+                 </div>
+               </div>
             </div>
           ))}
         </CardContent>
