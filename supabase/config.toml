@@ -1,1 +1,10 @@
 project_id = "rtggqfnzjeqhopqouthv"
+
+[functions.capture-daily-stock-summary]
+verify_jwt = false
+
+[functions.analyze-stock-patterns]
+verify_jwt = false
+
+[functions.export-historical-data]
+verify_jwt = false
