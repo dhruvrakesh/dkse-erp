@@ -13,7 +13,10 @@ import {
   LogOut,
   BarChart3,
   ClipboardList,
-  Tag
+  Tag,
+  Plus,
+  Minus,
+  AlertTriangle
 } from "lucide-react"
 
 import {
@@ -40,6 +43,9 @@ const mainItems = [
   { title: "Stock Summary", url: "/stock-summary", icon: BarChart3 },
   { title: "Opening Stock", url: "/opening-stock", icon: Inbox },
   { title: "Opening Stock Summary", url: "/opening-stock-summary", icon: ClipboardList },
+  { title: "GRN Processing", url: "/grn-processing", icon: Plus },
+  { title: "Issue Processing", url: "/issue-processing", icon: Minus },
+  { title: "Stock Alerts", url: "/stock-alerts", icon: AlertTriangle },
   { title: "Legacy Data", url: "/legacy", icon: Database },
 ]
 

@@ -14,6 +14,9 @@ import OpeningStock from "./pages/OpeningStock";
 import StockSummary from "./pages/StockSummary";
 import OpeningStockSummary from "./pages/OpeningStockSummary";
 import Categories from "./pages/Categories";
+import GRNProcessing from "./pages/GRNProcessing";
+import IssueProcessing from "./pages/IssueProcessing";
+import StockAlerts from "./pages/StockAlerts";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +46,9 @@ const App = () => (
                     <Route path="/opening-stock" element={<OpeningStock />} />
                     <Route path="/opening-stock-summary" element={<OpeningStockSummary />} />
                     <Route path="/categories" element={<Categories />} />
+                    <Route path="/grn-processing" element={<GRNProcessing />} />
+                    <Route path="/issue-processing" element={<IssueProcessing />} />
+                    <Route path="/stock-alerts" element={<StockAlerts />} />
                     <Route path="/legacy" element={<Index />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

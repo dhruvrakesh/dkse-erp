@@ -158,8 +158,7 @@ const IssueProcessing = () => {
                       value={formData.item_code}
                       onValueChange={(value) => setFormData({...formData, item_code: value})}
                       placeholder="Select item..."
-                      displayField="item_name"
-                      valueField="item_code"
+                      showStockLevel={true}
                     />
                   </div>
 
