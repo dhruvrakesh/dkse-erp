@@ -681,13 +681,6 @@ export type Database = {
             referencedRelation: "item_master"
             referencedColumns: ["item_code"]
           },
-          {
-            foreignKeyName: "grn_log_item_code_fkey"
-            columns: ["item_code"]
-            isOneToOne: false
-            referencedRelation: "stock_summary"
-            referencedColumns: ["item_code"]
-          },
         ]
       }
       issue_log: {
@@ -727,13 +720,6 @@ export type Database = {
             columns: ["item_code"]
             isOneToOne: false
             referencedRelation: "item_master"
-            referencedColumns: ["item_code"]
-          },
-          {
-            foreignKeyName: "issue_log_item_code_fkey"
-            columns: ["item_code"]
-            isOneToOne: false
-            referencedRelation: "stock_summary"
             referencedColumns: ["item_code"]
           },
         ]
@@ -1311,13 +1297,6 @@ export type Database = {
             referencedRelation: "item_master"
             referencedColumns: ["item_code"]
           },
-          {
-            foreignKeyName: "stock_item_code_fkey"
-            columns: ["item_code"]
-            isOneToOne: true
-            referencedRelation: "stock_summary"
-            referencedColumns: ["item_code"]
-          },
         ]
       }
       user_roles: {
@@ -1379,6 +1358,7 @@ export type Database = {
       }
       stock_summary: {
         Row: {
+          calculated_qty: number | null
           category_name: string | null
           current_qty: number | null
           days_of_cover: number | null
@@ -1388,7 +1368,15 @@ export type Database = {
           total_grn_qty: number | null
           total_issued_qty: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "stock_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: true
+            referencedRelation: "item_master"
+            referencedColumns: ["item_code"]
+          },
+        ]
       }
     }
     Functions: {
