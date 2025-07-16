@@ -187,6 +187,42 @@ export type Database = {
         }
         Relationships: []
       }
+      csv_upload_log: {
+        Row: {
+          created_at: string | null
+          error_rows: number
+          errors: Json | null
+          file_name: string
+          file_type: string
+          id: string
+          success_rows: number
+          total_rows: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_rows: number
+          errors?: Json | null
+          file_name: string
+          file_type: string
+          id?: string
+          success_rows: number
+          total_rows: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_rows?: number
+          errors?: Json | null
+          file_name?: string
+          file_type?: string
+          id?: string
+          success_rows?: number
+          total_rows?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       dkegl_adhesive_coating: {
         Row: {
           created_at: string | null
@@ -1284,6 +1320,30 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       eligible_adhesive_coating_uiorns: {
@@ -1401,6 +1461,10 @@ export type Database = {
         }
         Returns: string
       }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       get_workflow_status: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1413,9 +1477,16 @@ export type Database = {
           slitting: string
         }[]
       }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1542,6 +1613,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

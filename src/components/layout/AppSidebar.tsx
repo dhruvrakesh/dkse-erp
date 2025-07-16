@@ -7,7 +7,10 @@ import {
   TrendingUp,
   FileText,
   Settings,
-  Database
+  Database,
+  Inbox,
+  User,
+  LogOut
 } from "lucide-react"
 
 import {
@@ -20,14 +23,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useAuth } from "@/contexts/AuthContext"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Item Master", url: "/items", icon: Package },
   { title: "Stock Operations", url: "/stock", icon: ShoppingCart },
-  { title: "Reports", url: "/reports", icon: TrendingUp },
+  { title: "Opening Stock", url: "/opening-stock", icon: Inbox },
   { title: "Legacy Data", url: "/legacy", icon: Database },
 ]
 
@@ -38,6 +45,7 @@ const settingsItems = [
 
 export function AppSidebar() {
   const { state } = useSidebar()
+  const { user, isAdmin, signOut } = useAuth()
   const location = useLocation()
   const currentPath = location.pathname
   const collapsed = state === "collapsed"
@@ -90,6 +98,33 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      
+      <SidebarFooter>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <div className="px-3 py-2 space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <User className="h-4 w-4" />
+                {!collapsed && (
+                  <>
+                    <span className="truncate">{user?.email}</span>
+                    {isAdmin && <Badge variant="secondary" className="text-xs">Admin</Badge>}
+                  </>
+                )}
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={collapsed ? "w-8 h-8 p-0" : "w-full justify-start"}
+                onClick={signOut}
+              >
+                <LogOut className="h-4 w-4" />
+                {!collapsed && <span className="ml-2">Sign Out</span>}
+              </Button>
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarFooter>
     </Sidebar>
   )
 }
