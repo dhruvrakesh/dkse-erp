@@ -1,0 +1,478 @@
+import { useState } from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { Plus, Minus } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+
+const StockOperations = () => {
+  const [selectedItem, setSelectedItem] = useState("")
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  const { data: items } = useQuery({
+    queryKey: ['items-for-stock'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('item_master')
+        .select('item_code, item_name, uom')
+        .eq('status', 'active')
+        .order('item_name')
+      
+      if (error) throw error
+      return data || []
+    }
+  })
+
+  const { data: recentGRNs } = useQuery({
+    queryKey: ['recent-grns-detailed'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('grn_log')
+        .select(`
+          *,
+          item_master(item_name, uom)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      
+      if (error) throw error
+      return data || []
+    }
+  })
+
+  const { data: recentIssues } = useQuery({
+    queryKey: ['recent-issues-detailed'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('issue_log')
+        .select(`
+          *,
+          item_master(item_name, uom)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      
+      if (error) throw error
+      return data || []
+    }
+  })
+
+  const createGRNMutation = useMutation({
+    mutationFn: async (grnData: any) => {
+      const { data, error } = await supabase
+        .from('grn_log')
+        .insert(grnData)
+        .select()
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recent-grns-detailed'] })
+      queryClient.invalidateQueries({ queryKey: ['stock-summary'] })
+      toast({
+        title: "Success",
+        description: "GRN entry created successfully",
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  })
+
+  const createIssueMutation = useMutation({
+    mutationFn: async (issueData: any) => {
+      // Check available stock first
+      const { data: stockData, error: stockError } = await supabase
+        .from('stock')
+        .select('current_qty')
+        .eq('item_code', issueData.item_code)
+        .single()
+
+      if (stockError) throw new Error('Could not check stock levels')
+      
+      if (!stockData || stockData.current_qty < issueData.qty_issued) {
+        throw new Error('Insufficient stock available')
+      }
+
+      const { data, error } = await supabase
+        .from('issue_log')
+        .insert(issueData)
+        .select()
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recent-issues-detailed'] })
+      queryClient.invalidateQueries({ queryKey: ['stock-summary'] })
+      toast({
+        title: "Success",
+        description: "Issue entry created successfully",
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  })
+
+  const handleGRNSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.target as HTMLFormElement)
+    
+    const grnData = {
+      grn_number: formData.get('grn_number') as string,
+      date: formData.get('date') as string,
+      item_code: formData.get('item_code') as string,
+      uom: formData.get('uom') as string,
+      qty_received: parseFloat(formData.get('qty_received') as string),
+      invoice_number: formData.get('invoice_number') as string,
+      amount_inr: formData.get('amount_inr') ? parseFloat(formData.get('amount_inr') as string) : null,
+      vendor: formData.get('vendor') as string,
+      remarks: formData.get('remarks') as string
+    }
+
+    createGRNMutation.mutate(grnData)
+    ;(e.target as HTMLFormElement).reset()
+    setSelectedItem("")
+  }
+
+  const handleIssueSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.target as HTMLFormElement)
+    
+    const issueData = {
+      date: formData.get('date') as string,
+      item_code: formData.get('item_code') as string,
+      qty_issued: parseFloat(formData.get('qty_issued') as string),
+      purpose: formData.get('purpose') as string,
+      remarks: formData.get('remarks') as string
+    }
+
+    createIssueMutation.mutate(issueData)
+    ;(e.target as HTMLFormElement).reset()
+    setSelectedItem("")
+  }
+
+  const selectedItemDetails = items?.find(item => item.item_code === selectedItem)
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Stock Operations</h1>
+        <p className="text-muted-foreground">Manage stock receipts (GRN) and issues</p>
+      </div>
+
+      <Tabs defaultValue="grn" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="grn">Goods Receipt Note (GRN)</TabsTrigger>
+          <TabsTrigger value="issue">Stock Issue</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="grn" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* GRN Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Stock Receipt
+                </CardTitle>
+                <CardDescription>Record incoming stock items</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleGRNSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="grn_number">GRN Number *</Label>
+                      <Input
+                        id="grn_number"
+                        name="grn_number"
+                        placeholder="GRN-001"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Date *</Label>
+                      <Input
+                        id="date"
+                        name="date"
+                        type="date"
+                        defaultValue={new Date().toISOString().split('T')[0]}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="item_code">Item *</Label>
+                    <Select 
+                      name="item_code" 
+                      value={selectedItem} 
+                      onValueChange={setSelectedItem}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select item" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {items?.map((item) => (
+                          <SelectItem key={item.item_code} value={item.item_code}>
+                            {item.item_name} ({item.item_code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="qty_received">Quantity Received *</Label>
+                      <Input
+                        id="qty_received"
+                        name="qty_received"
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="uom">UOM</Label>
+                      <Input
+                        id="uom"
+                        name="uom"
+                        value={selectedItemDetails?.uom || ''}
+                        readOnly
+                        placeholder="Select item first"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="invoice_number">Invoice Number</Label>
+                      <Input
+                        id="invoice_number"
+                        name="invoice_number"
+                        placeholder="INV-001"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="amount_inr">Amount (INR)</Label>
+                      <Input
+                        id="amount_inr"
+                        name="amount_inr"
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="vendor">Vendor</Label>
+                    <Input
+                      id="vendor"
+                      name="vendor"
+                      placeholder="Vendor name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="remarks">Remarks</Label>
+                    <Textarea
+                      id="remarks"
+                      name="remarks"
+                      placeholder="Additional notes..."
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={createGRNMutation.isPending}>
+                    {createGRNMutation.isPending ? "Processing..." : "Add GRN Entry"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Recent GRNs */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent GRN Entries</CardTitle>
+                <CardDescription>Latest stock receipts</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>GRN No.</TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentGRNs?.slice(0, 10).map((grn) => (
+                      <TableRow key={grn.id}>
+                        <TableCell className="font-mono">{grn.grn_number}</TableCell>
+                        <TableCell>{grn.item_master?.item_name}</TableCell>
+                        <TableCell className="font-mono text-green-600">+{grn.qty_received}</TableCell>
+                        <TableCell>{new Date(grn.date).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="issue" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Issue Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Minus className="mr-2 h-4 w-4" />
+                  Issue Stock
+                </CardTitle>
+                <CardDescription>Record stock consumption/issues</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleIssueSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date *</Label>
+                    <Input
+                      id="date"
+                      name="date"
+                      type="date"
+                      defaultValue={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="item_code">Item *</Label>
+                    <Select 
+                      name="item_code" 
+                      value={selectedItem} 
+                      onValueChange={setSelectedItem}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select item" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {items?.map((item) => (
+                          <SelectItem key={item.item_code} value={item.item_code}>
+                            {item.item_name} ({item.item_code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="qty_issued">Quantity Issued *</Label>
+                    <Input
+                      id="qty_issued"
+                      name="qty_issued"
+                      type="number"
+                      step="0.01"
+                      placeholder="0"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="purpose">Purpose *</Label>
+                    <Select name="purpose" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select purpose" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="production">Production</SelectItem>
+                        <SelectItem value="maintenance">Maintenance</SelectItem>
+                        <SelectItem value="r&d">R&D</SelectItem>
+                        <SelectItem value="sample">Sample</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="remarks">Remarks</Label>
+                    <Textarea
+                      id="remarks"
+                      name="remarks"
+                      placeholder="Additional notes..."
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={createIssueMutation.isPending}>
+                    {createIssueMutation.isPending ? "Processing..." : "Issue Stock"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Recent Issues */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Issues</CardTitle>
+                <CardDescription>Latest stock consumption</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead>Purpose</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentIssues?.slice(0, 10).map((issue) => (
+                      <TableRow key={issue.id}>
+                        <TableCell>{issue.item_master?.item_name}</TableCell>
+                        <TableCell className="font-mono text-red-600">-{issue.qty_issued}</TableCell>
+                        <TableCell>{issue.purpose}</TableCell>
+                        <TableCell>{new Date(issue.date).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
+
+export default StockOperations

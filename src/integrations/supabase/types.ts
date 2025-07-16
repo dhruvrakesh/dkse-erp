@@ -115,6 +115,30 @@ export type Database = {
         }
         Relationships: []
       }
+      categories: {
+        Row: {
+          category_name: string
+          created_at: string
+          description: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          category_name: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          category_name?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cost_mockup_estimate: {
         Row: {
           brand_sku_ref: string | null
@@ -570,6 +594,167 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "order_punching"
             referencedColumns: ["uiorn"]
+          },
+        ]
+      }
+      grn_log: {
+        Row: {
+          amount_inr: number | null
+          created_at: string
+          date: string
+          grn_number: string
+          id: string
+          invoice_number: string | null
+          item_code: string
+          qty_received: number
+          remarks: string | null
+          uom: string
+          vendor: string | null
+        }
+        Insert: {
+          amount_inr?: number | null
+          created_at?: string
+          date?: string
+          grn_number: string
+          id?: string
+          invoice_number?: string | null
+          item_code: string
+          qty_received: number
+          remarks?: string | null
+          uom: string
+          vendor?: string | null
+        }
+        Update: {
+          amount_inr?: number | null
+          created_at?: string
+          date?: string
+          grn_number?: string
+          id?: string
+          invoice_number?: string | null
+          item_code?: string
+          qty_received?: number
+          remarks?: string | null
+          uom?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grn_log_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "item_master"
+            referencedColumns: ["item_code"]
+          },
+          {
+            foreignKeyName: "grn_log_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "stock_summary"
+            referencedColumns: ["item_code"]
+          },
+        ]
+      }
+      issue_log: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          item_code: string
+          purpose: string | null
+          qty_issued: number
+          remarks: string | null
+          total_issued_qty: number | null
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          item_code: string
+          purpose?: string | null
+          qty_issued: number
+          remarks?: string | null
+          total_issued_qty?: number | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          item_code?: string
+          purpose?: string | null
+          qty_issued?: number
+          remarks?: string | null
+          total_issued_qty?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_log_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "item_master"
+            referencedColumns: ["item_code"]
+          },
+          {
+            foreignKeyName: "issue_log_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "stock_summary"
+            referencedColumns: ["item_code"]
+          },
+        ]
+      }
+      item_master: {
+        Row: {
+          auto_code: string | null
+          category_id: string | null
+          created_at: string
+          gsm: number | null
+          id: string
+          item_code: string
+          item_name: string
+          qualifier: string | null
+          size_mm: string | null
+          status: string
+          uom: string
+          updated_at: string
+          usage_type: string | null
+        }
+        Insert: {
+          auto_code?: string | null
+          category_id?: string | null
+          created_at?: string
+          gsm?: number | null
+          id?: string
+          item_code: string
+          item_name: string
+          qualifier?: string | null
+          size_mm?: string | null
+          status?: string
+          uom?: string
+          updated_at?: string
+          usage_type?: string | null
+        }
+        Update: {
+          auto_code?: string | null
+          category_id?: string | null
+          created_at?: string
+          gsm?: number | null
+          id?: string
+          item_code?: string
+          item_name?: string
+          qualifier?: string | null
+          size_mm?: string | null
+          status?: string
+          uom?: string
+          updated_at?: string
+          usage_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_master_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1060,6 +1245,45 @@ export type Database = {
           },
         ]
       }
+      stock: {
+        Row: {
+          current_qty: number
+          id: string
+          item_code: string
+          last_updated: string
+          opening_qty: number
+        }
+        Insert: {
+          current_qty?: number
+          id?: string
+          item_code: string
+          last_updated?: string
+          opening_qty?: number
+        }
+        Update: {
+          current_qty?: number
+          id?: string
+          item_code?: string
+          last_updated?: string
+          opening_qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: true
+            referencedRelation: "item_master"
+            referencedColumns: ["item_code"]
+          },
+          {
+            foreignKeyName: "stock_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: true
+            referencedRelation: "stock_summary"
+            referencedColumns: ["item_code"]
+          },
+        ]
+      }
     }
     Views: {
       eligible_adhesive_coating_uiorns: {
@@ -1090,6 +1314,19 @@ export type Database = {
           substrate_gsm: number | null
           substrate_name: string | null
           uiorn: string | null
+        }
+        Relationships: []
+      }
+      stock_summary: {
+        Row: {
+          category_name: string | null
+          current_qty: number | null
+          days_of_cover: number | null
+          item_code: string | null
+          item_name: string | null
+          opening_qty: number | null
+          total_grn_qty: number | null
+          total_issued_qty: number | null
         }
         Relationships: []
       }
@@ -1154,6 +1391,15 @@ export type Database = {
           adhesive_coating: string
           slitting: string
         }[]
+      }
+      generate_item_code: {
+        Args: {
+          category_name: string
+          qualifier?: string
+          size_mm?: string
+          gsm?: number
+        }
+        Returns: string
       }
       get_workflow_status: {
         Args: Record<PropertyKey, never>
