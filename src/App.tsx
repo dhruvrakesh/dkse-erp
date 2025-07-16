@@ -11,6 +11,9 @@ import Dashboard from "./pages/Dashboard";
 import ItemMaster from "./pages/ItemMaster";
 import StockOperations from "./pages/StockOperations";
 import OpeningStock from "./pages/OpeningStock";
+import StockSummary from "./pages/StockSummary";
+import OpeningStockSummary from "./pages/OpeningStockSummary";
+import Categories from "./pages/Categories";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -36,7 +39,10 @@ const App = () => (
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/items" element={<ItemMaster />} />
                     <Route path="/stock" element={<StockOperations />} />
+                    <Route path="/stock-summary" element={<StockSummary />} />
                     <Route path="/opening-stock" element={<OpeningStock />} />
+                    <Route path="/opening-stock-summary" element={<OpeningStockSummary />} />
+                    <Route path="/categories" element={<Categories />} />
                     <Route path="/legacy" element={<Index />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

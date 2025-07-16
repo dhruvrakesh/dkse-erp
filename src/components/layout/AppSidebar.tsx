@@ -10,7 +10,10 @@ import {
   Database,
   Inbox,
   User,
-  LogOut
+  LogOut,
+  BarChart3,
+  ClipboardList,
+  Tag
 } from "lucide-react"
 
 import {
@@ -34,12 +37,14 @@ const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Item Master", url: "/items", icon: Package },
   { title: "Stock Operations", url: "/stock", icon: ShoppingCart },
+  { title: "Stock Summary", url: "/stock-summary", icon: BarChart3 },
   { title: "Opening Stock", url: "/opening-stock", icon: Inbox },
+  { title: "Opening Stock Summary", url: "/opening-stock-summary", icon: ClipboardList },
   { title: "Legacy Data", url: "/legacy", icon: Database },
 ]
 
 const settingsItems = [
-  { title: "Categories", url: "/categories", icon: FileText },
+  { title: "Categories", url: "/categories", icon: Tag },
   { title: "Settings", url: "/settings", icon: Settings },
 ]
 
