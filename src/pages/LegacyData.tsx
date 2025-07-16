@@ -180,8 +180,15 @@ const LegacyData = () => {
   const handleExport = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('export-historical-data', {
-        body: {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch('https://rtggqfnzjeqhopqouthv.supabase.co/functions/v1/export-historical-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0Z2dxZm56amVxaG9wcW91dGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwMTc3NDUsImV4cCI6MjA1ODU5Mzc0NX0._ulZsOJcKucn2X0Xi4c0JJfMGCB48fKFTdvfQiU3cko'}`,
+        },
+        body: JSON.stringify({
           format: exportFormat,
           dateRange: {
             start: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null,
@@ -190,15 +197,15 @@ const LegacyData = () => {
           filters: {
             searchTerm: searchTerm || null
           }
-        }
+        })
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      // Create download link
-      const blob = new Blob([data], { 
-        type: exportFormat === 'json' ? 'application/json' : 'text/csv' 
-      });
+      // Get the response as a blob
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
