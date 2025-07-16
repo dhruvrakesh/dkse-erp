@@ -52,6 +52,7 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
     success: number;
     errors: any[];
     total: number;
+    createdCategories: string[];
   } | null>(null);
 
   const requiredHeaders = ['item_name', 'category_name', 'uom'];
@@ -109,7 +110,7 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
   const validateRow = (rowData: any, rowIndex: number): ValidationError[] => {
     const errors: ValidationError[] = [];
 
-    // Required field validation
+    // Only validate truly required fields
     if (!rowData.item_name?.trim()) {
       errors.push({
         row: rowIndex + 2,
@@ -126,19 +127,6 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
         message: 'Category name is required',
         data: rowData
       });
-    } else {
-      // Check if category exists
-      const categoryExists = categories.find(cat => 
-        cat.category_name.toLowerCase() === rowData.category_name.toLowerCase()
-      );
-      if (!categoryExists) {
-        errors.push({
-          row: rowIndex + 2,
-          field: 'category_name',
-          message: `Category '${rowData.category_name}' does not exist`,
-          data: rowData
-        });
-      }
     }
 
     if (!rowData.uom?.trim()) {
@@ -150,27 +138,47 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
       });
     }
 
-    // GSM validation
-    if (rowData.gsm && isNaN(parseFloat(rowData.gsm))) {
-      errors.push({
-        row: rowIndex + 2,
-        field: 'gsm',
-        message: 'GSM must be a valid number',
-        data: rowData
-      });
-    }
-
-    // Status validation
-    if (rowData.status && !['active', 'inactive'].includes(rowData.status.toLowerCase())) {
-      errors.push({
-        row: rowIndex + 2,
-        field: 'status',
-        message: 'Status must be either "active" or "inactive"',
-        data: rowData
-      });
-    }
+    // Relaxed validations - no strict checks, just warnings
+    // GSM can be any value - numbers, text, or empty
+    // Status defaults to 'active' if not provided or invalid
 
     return errors;
+  };
+
+  const [createdCategories, setCreatedCategories] = useState<string[]>([]);
+
+  const findOrCreateCategory = async (categoryName: string) => {
+    // First try to find existing category (case-insensitive)
+    const existingCategory = categories.find(cat => 
+      cat.category_name.toLowerCase() === categoryName.toLowerCase()
+    );
+    
+    if (existingCategory) {
+      return existingCategory;
+    }
+    
+    // Create new category if it doesn't exist
+    const { data: newCategory, error } = await supabase
+      .from('categories')
+      .insert({
+        category_name: categoryName.trim(),
+        description: `Auto-created from CSV upload`
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating category:', error);
+      throw error;
+    }
+    
+    // Add to local categories array for subsequent rows
+    categories.push(newCategory);
+    
+    // Track created categories
+    setCreatedCategories(prev => [...prev, newCategory.category_name]);
+    
+    return newCategory;
   };
 
   const checkForConflicts = async (dataObjects: any[]): Promise<ConflictItem[]> => {
@@ -179,67 +187,70 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
     for (let i = 0; i < dataObjects.length; i++) {
       const row = dataObjects[i];
       
-      // Find category
-      const category = categories.find(cat => 
-        cat.category_name.toLowerCase() === row.category_name?.toLowerCase()
-      );
-      
-      if (category) {
-        try {
-          // Use enhanced validation and generation
-          const { data: result, error } = await supabase
-            .rpc('generate_item_code_with_validation', {
-              category_name: category.category_name,
-              qualifier: row.qualifier || '',
-              size_mm: row.size_mm || '',
-              gsm: row.gsm ? parseFloat(row.gsm) : null
-            });
+      try {
+        // Find or create category dynamically
+        const category = await findOrCreateCategory(row.category_name);
+        
+        // Prepare GSM value - handle both numeric and text values
+        let gsmValue = null;
+        if (row.gsm) {
+          const numericGsm = parseFloat(row.gsm);
+          gsmValue = isNaN(numericGsm) ? null : numericGsm;
+        }
+        
+        // Use enhanced validation and generation
+        const { data: result, error } = await supabase
+          .rpc('generate_item_code_with_validation', {
+            category_name: category.category_name,
+            qualifier: row.qualifier || '',
+            size_mm: row.size_mm || '',
+            gsm: gsmValue
+          });
 
-          if (!error && result) {
-            const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
-            
-            if (parsedResult.success) {
-              // Check if item code would conflict (though enhanced function handles uniqueness)
-              const { data: existingItem, error: checkError } = await supabase
-                .from('item_master')
-                .select('item_code, item_name')
-                .eq('item_code', parsedResult.item_code)
-                .maybeSingle();
+        if (!error && result) {
+          const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
+          
+          if (parsedResult.success) {
+            // Check if item code would conflict
+            const { data: existingItem, error: checkError } = await supabase
+              .from('item_master')
+              .select('item_code, item_name')
+              .eq('item_code', parsedResult.item_code)
+              .maybeSingle();
 
-              if (!checkError && existingItem) {
-                conflicts.push({
-                  row: i + 2,
-                  item_code: parsedResult.item_code,
-                  action: 'skip',
-                  data: { 
-                    ...row, 
-                    generated_code: parsedResult.item_code,
-                    validation_warnings: parsedResult.validation?.warnings || []
-                  }
-                });
-              }
-            } else {
-              // Handle validation errors
-              const validationErrors = parsedResult.validation?.errors || [];
-              validationErrors.forEach((error: string) => {
-                conflicts.push({
-                  row: i + 2,
-                  item_code: 'VALIDATION_ERROR',
-                  action: 'error',
-                  data: { ...row, validation_error: error }
-                });
+            if (!checkError && existingItem) {
+              conflicts.push({
+                row: i + 2,
+                item_code: parsedResult.item_code,
+                action: 'skip',
+                data: { 
+                  ...row, 
+                  generated_code: parsedResult.item_code,
+                  validation_warnings: parsedResult.validation?.warnings || []
+                }
               });
             }
+          } else {
+            // Handle validation errors
+            const validationErrors = parsedResult.validation?.errors || [];
+            validationErrors.forEach((error: string) => {
+              conflicts.push({
+                row: i + 2,
+                item_code: 'VALIDATION_ERROR',
+                action: 'error',
+                data: { ...row, validation_error: error }
+              });
+            });
           }
-        } catch (error) {
-          console.error('Error checking for conflicts:', error);
-          conflicts.push({
-            row: i + 2,
-            item_code: 'GENERATION_ERROR',
-            action: 'error',
-            data: { ...row, generation_error: error instanceof Error ? error.message : 'Unknown error' }
-          });
         }
+      } catch (error) {
+        console.error('Error processing row:', error);
+        conflicts.push({
+          row: i + 2,
+          item_code: 'PROCESSING_ERROR',
+          action: 'error',
+          data: { ...row, processing_error: error instanceof Error ? error.message : 'Unknown error' }
+        });
       }
     }
     
@@ -367,17 +378,14 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
         
         for (const item of batch) {
           try {
-            // Find category
-            const category = categories.find(cat => 
-              cat.category_name.toLowerCase() === item.category_name?.toLowerCase()
-            );
+            // Find or create category dynamically
+            const category = await findOrCreateCategory(item.category_name);
 
-            if (!category) {
-              allErrors.push({
-                row: item.originalRowIndex,
-                message: `Category '${item.category_name}' not found`
-              });
-              continue;
+            // Prepare GSM value - handle both numeric and text values
+            let gsmValue = null;
+            if (item.gsm) {
+              const numericGsm = parseFloat(item.gsm);
+              gsmValue = isNaN(numericGsm) ? null : numericGsm;
             }
 
             // Generate item code using enhanced validation
@@ -386,7 +394,7 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
                 category_name: category.category_name,
                 qualifier: item.qualifier || '',
                 size_mm: item.size_mm || '',
-                gsm: item.gsm ? parseFloat(item.gsm) : null
+                gsm: gsmValue
               });
 
             if (codeError) {
@@ -424,7 +432,7 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
                   item_name: item.item_name,
                   category_id: category.id,
                   qualifier: item.qualifier || null,
-                  gsm: item.gsm ? parseFloat(item.gsm) : null,
+                  gsm: gsmValue,
                   size_mm: item.size_mm || null,
                   uom: item.uom,
                   usage_type: item.usage_type || null,
@@ -450,7 +458,7 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
                   item_name: item.item_name,
                   category_id: category.id,
                   qualifier: item.qualifier || null,
-                  gsm: item.gsm ? parseFloat(item.gsm) : null,
+                  gsm: gsmValue,
                   size_mm: item.size_mm || null,
                   uom: item.uom,
                   usage_type: item.usage_type || null,
@@ -506,7 +514,8 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
       setUploadResult({
         success: totalSuccess,
         errors: allErrors,
-        total: dataObjects.length
+        total: dataObjects.length,
+        createdCategories: [...new Set(createdCategories)]
       });
 
       toast({
@@ -534,6 +543,7 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
     setValidationErrors([]);
     setConflicts([]);
     setProgress(0);
+    setCreatedCategories([]);
   };
 
   const updateConflictAction = (rowIndex: number, action: 'skip' | 'update' | 'error') => {
@@ -679,6 +689,18 @@ export const ItemMasterCSVUpload: React.FC<ItemMasterCSVUploadProps> = ({
                   Upload completed: {uploadResult.success} successful, {uploadResult.errors.length} failed out of {uploadResult.total} total rows
                 </AlertDescription>
               </Alert>
+
+              {uploadResult.createdCategories.length > 0 && (
+                <Alert className="border-blue-200 bg-blue-50">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="font-medium">New categories created:</div>
+                    <div className="mt-1 text-sm">
+                      {uploadResult.createdCategories.join(', ')}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {uploadResult.errors.length > 0 && (
                 <div>

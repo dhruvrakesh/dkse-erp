@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table"
 import { ItemMasterCSVUpload } from "@/components/csv/ItemMasterCSVUpload"
 import { ItemMasterBulkActions } from "@/components/csv/ItemMasterBulkActions"
+import { ItemMasterRow } from "@/components/ItemMasterInlineEditor"
 
 const ItemMaster = () => {
   const [searchTerm, setSearchTerm] = useState("")
@@ -126,6 +127,31 @@ const ItemMaster = () => {
     }
   })
 
+  const deleteItemMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { error } = await supabase
+        .from('item_master')
+        .delete()
+        .eq('id', itemId)
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['item-master'] })
+      toast({
+        title: "Success",
+        description: "Item deleted successfully",
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  })
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.target as HTMLFormElement)
@@ -161,6 +187,16 @@ const ItemMaster = () => {
 
   const isItemSelected = (item: any) => {
     return selectedItems.find(selected => selected.id === item.id) !== undefined;
+  };
+
+  const handleDeleteItem = (item: any) => {
+    if (window.confirm(`Are you sure you want to delete "${item.item_name}"?`)) {
+      deleteItemMutation.mutate(item.id);
+    }
+  };
+
+  const handleItemUpdate = () => {
+    queryClient.invalidateQueries({ queryKey: ['item-master'] });
   };
 
   return (
@@ -308,73 +344,56 @@ const ItemMaster = () => {
               <CardDescription>Manage your inventory items and view stock levels</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectedItems.length === items?.length && items.length > 0}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedItems(items || []);
-                          } else {
-                            setSelectedItems([]);
-                          }
-                        }}
-                      />
-                    </TableHead>
-                    <TableHead>Item Code</TableHead>
-                    <TableHead>Item Name</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Current Stock</TableHead>
-                    <TableHead>UOM</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center">Loading...</TableCell>
-                    </TableRow>
-                  ) : items?.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center">No items found</TableCell>
-                    </TableRow>
-                  ) : (
-                    items?.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={isItemSelected(item)}
-                            onCheckedChange={() => toggleItemSelection(item)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-mono">{item.item_code}</TableCell>
-                        <TableCell className="font-medium">{item.item_name}</TableCell>
-                        <TableCell>{item.categories?.category_name || 'N/A'}</TableCell>
-                        <TableCell className="font-mono">{item.stock?.[0]?.current_qty || 0}</TableCell>
-                        <TableCell>{item.uom}</TableCell>
-                        <TableCell>
-                          <Badge variant={item.status === 'active' ? 'default' : 'secondary'}>
-                            {item.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2 w-12">
+                        <Checkbox
+                          checked={selectedItems.length === items?.length && items.length > 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedItems(items || []);
+                            } else {
+                              setSelectedItems([]);
+                            }
+                          }}
+                        />
+                      </th>
+                      <th className="text-left p-2">Item Code</th>
+                      <th className="text-left p-2">Item Name</th>
+                      <th className="text-left p-2">Category</th>
+                      <th className="text-left p-2">Current Stock</th>
+                      <th className="text-left p-2">UOM</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-left p-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={8} className="text-center p-4">Loading...</td>
+                      </tr>
+                    ) : items?.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="text-center p-4">No items found</td>
+                      </tr>
+                    ) : (
+                      items?.map((item) => (
+                        <ItemMasterRow
+                          key={item.id}
+                          item={item}
+                          categories={categories || []}
+                          isSelected={isItemSelected(item)}
+                          onSelectionChange={toggleItemSelection}
+                          onUpdate={handleItemUpdate}
+                          onDelete={handleDeleteItem}
+                        />
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
