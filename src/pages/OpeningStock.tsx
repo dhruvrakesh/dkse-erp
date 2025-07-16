@@ -2,8 +2,10 @@
 import React from 'react';
 import { CSVUpload } from '@/components/csv/CSVUpload';
 import { TemplateDownload } from '@/components/ui/template-download';
+import { ManualOpeningStockEntry } from '@/components/stock/ManualOpeningStockEntry';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const OpeningStock = () => {
   const expectedHeaders = [
@@ -91,28 +93,43 @@ const OpeningStock = () => {
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Opening Stock Import</h1>
         <p className="text-muted-foreground mt-2">
-          Import your opening stock data from CSV files. The system will automatically create items and categories if they don't exist.
+          Import your opening stock data from CSV files or add items manually. The system will automatically create items and categories if they don't exist.
         </p>
       </div>
 
-      <div className="max-w-4xl grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <TemplateDownload
-            templateType="openingStock"
-            title="Download Template"
-            description="CSV template with sample opening stock data. Required columns: item_code, opening_qty. Optional: item_name, category, uom"
-          />
-        </div>
+      <Tabs defaultValue="manual" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+          <TabsTrigger value="csv">CSV Import</TabsTrigger>
+        </TabsList>
 
-        <div className="lg:col-span-2">
-          <CSVUpload
-            title="Opening Stock CSV Upload"
-            description="Upload a CSV file with opening stock data. Required columns: item_code, opening_qty. Optional: item_name, category, uom"
-            expectedHeaders={expectedHeaders}
-            onDataProcessed={processOpeningStock}
-          />
-        </div>
-      </div>
+        <TabsContent value="manual" className="space-y-6">
+          <div className="max-w-2xl">
+            <ManualOpeningStockEntry />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="csv" className="space-y-6">
+          <div className="max-w-4xl grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-1">
+              <TemplateDownload
+                templateType="openingStock"
+                title="Download Template"
+                description="CSV template with sample opening stock data. Required columns: item_code, opening_qty. Optional: item_name, category, uom"
+              />
+            </div>
+
+            <div className="lg:col-span-2">
+              <CSVUpload
+                title="Opening Stock CSV Upload"
+                description="Upload a CSV file with opening stock data. Required columns: item_code, opening_qty. Optional: item_name, category, uom"
+                expectedHeaders={expectedHeaders}
+                onDataProcessed={processOpeningStock}
+              />
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
       
       <div className="mt-6 p-4 bg-muted rounded-lg">
         <h3 className="font-semibold mb-2">CSV Format Example:</h3>

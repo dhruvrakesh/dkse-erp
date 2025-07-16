@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { TemplateDownload } from "@/components/ui/template-download"
+import { ItemCombobox } from "@/components/ui/item-combobox"
+import { useItemsWithStock } from "@/hooks/useItemsWithStock"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Minus } from "lucide-react"
 import {
@@ -25,19 +26,7 @@ const StockOperations = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const { data: items } = useQuery({
-    queryKey: ['items-for-stock'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('item_master')
-        .select('item_code, item_name, uom')
-        .eq('status', 'active')
-        .order('item_name')
-      
-      if (error) throw error
-      return data || []
-    }
-  })
+  const { data: items = [] } = useItemsWithStock()
 
   const { data: recentGRNs } = useQuery({
     queryKey: ['recent-grns-detailed'],
@@ -86,6 +75,7 @@ const StockOperations = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recent-grns-detailed'] })
       queryClient.invalidateQueries({ queryKey: ['stock-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['items-with-stock'] })
       toast({
         title: "Success",
         description: "GRN entry created successfully",
@@ -126,6 +116,7 @@ const StockOperations = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recent-issues-detailed'] })
       queryClient.invalidateQueries({ queryKey: ['stock-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['items-with-stock'] })
       toast({
         title: "Success",
         description: "Issue entry created successfully",
@@ -147,7 +138,7 @@ const StockOperations = () => {
     const grnData = {
       grn_number: formData.get('grn_number') as string,
       date: formData.get('date') as string,
-      item_code: formData.get('item_code') as string,
+      item_code: selectedItem,
       uom: formData.get('uom') as string,
       qty_received: parseFloat(formData.get('qty_received') as string),
       invoice_number: formData.get('invoice_number') as string,
@@ -167,7 +158,7 @@ const StockOperations = () => {
     
     const issueData = {
       date: formData.get('date') as string,
-      item_code: formData.get('item_code') as string,
+      item_code: selectedItem,
       qty_issued: parseFloat(formData.get('qty_issued') as string),
       purpose: formData.get('purpose') as string,
       remarks: formData.get('remarks') as string
@@ -178,7 +169,7 @@ const StockOperations = () => {
     setSelectedItem("")
   }
 
-  const selectedItemDetails = items?.find(item => item.item_code === selectedItem)
+  const selectedItemDetails = items.find(item => item.item_code === selectedItem)
 
   return (
     <div className="p-6 space-y-6">
@@ -241,23 +232,13 @@ const StockOperations = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="item_code">Item *</Label>
-                      <Select 
-                        name="item_code" 
-                        value={selectedItem} 
+                      <ItemCombobox
+                        items={items}
+                        value={selectedItem}
                         onValueChange={setSelectedItem}
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select item" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {items?.map((item) => (
-                            <SelectItem key={item.item_code} value={item.item_code}>
-                              {item.item_name} ({item.item_code})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Search and select item..."
+                        showStockLevel={true}
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -323,7 +304,7 @@ const StockOperations = () => {
                       />
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={createGRNMutation.isPending}>
+                    <Button type="submit" className="w-full" disabled={createGRNMutation.isPending || !selectedItem}>
                       {createGRNMutation.isPending ? "Processing..." : "Add GRN Entry"}
                     </Button>
                   </form>
@@ -400,24 +381,22 @@ const StockOperations = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="item_code">Item *</Label>
-                      <Select 
-                        name="item_code" 
-                        value={selectedItem} 
+                      <ItemCombobox
+                        items={items}
+                        value={selectedItem}
                         onValueChange={setSelectedItem}
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select item" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {items?.map((item) => (
-                            <SelectItem key={item.item_code} value={item.item_code}>
-                              {item.item_name} ({item.item_code})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Search and select item..."
+                        showStockLevel={true}
+                      />
                     </div>
+
+                    {selectedItemDetails && (
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="text-sm text-muted-foreground">
+                          Available Stock: <span className="font-medium text-foreground">{selectedItemDetails.current_qty} {selectedItemDetails.uom}</span>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="qty_issued">Quantity Issued *</Label>
@@ -427,24 +406,25 @@ const StockOperations = () => {
                         type="number"
                         step="0.01"
                         placeholder="0"
+                        max={selectedItemDetails?.current_qty || undefined}
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="purpose">Purpose *</Label>
-                      <Select name="purpose" required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select purpose" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="production">Production</SelectItem>
-                          <SelectItem value="maintenance">Maintenance</SelectItem>
-                          <SelectItem value="r&d">R&D</SelectItem>
-                          <SelectItem value="sample">Sample</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <select 
+                        name="purpose" 
+                        required
+                        className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                      >
+                        <option value="">Select purpose</option>
+                        <option value="production">Production</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="r&d">R&D</option>
+                        <option value="sample">Sample</option>
+                        <option value="other">Other</option>
+                      </select>
                     </div>
 
                     <div className="space-y-2">
@@ -456,7 +436,7 @@ const StockOperations = () => {
                       />
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={createIssueMutation.isPending}>
+                    <Button type="submit" className="w-full" disabled={createIssueMutation.isPending || !selectedItem}>
                       {createIssueMutation.isPending ? "Processing..." : "Issue Stock"}
                     </Button>
                   </form>
