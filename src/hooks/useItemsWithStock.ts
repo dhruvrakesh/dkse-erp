@@ -16,17 +16,23 @@ export const useItemsWithStock = () => {
           categories(category_name),
           stock(current_qty)
         `)
-        .eq('status', 'active')
+        .or('status.eq.active,status.eq.Active')
         .order('item_name')
       
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching items with stock:', error)
+        throw error
+      }
+      
+      console.log('Fetched items:', data?.length || 0)
       
       return (data || []).map(item => ({
         item_code: item.item_code,
         item_name: item.item_name,
         uom: item.uom,
         category_name: item.categories?.category_name || 'Uncategorized',
-        current_qty: item.stock?.current_qty || 0
+        current_qty: item.stock?.current_qty || 0,
+        status: item.status
       }))
     }
   })

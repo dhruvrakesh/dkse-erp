@@ -11,7 +11,7 @@ import { TemplateDownload } from "@/components/ui/template-download"
 import { ItemCombobox } from "@/components/ui/item-combobox"
 import { useItemsWithStock } from "@/hooks/useItemsWithStock"
 import { useToast } from "@/hooks/use-toast"
-import { Plus, Minus } from "lucide-react"
+import { Plus, Minus, AlertCircle, RefreshCw } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -20,13 +20,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const StockOperations = () => {
   const [selectedItem, setSelectedItem] = useState("")
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const { data: items = [] } = useItemsWithStock()
+  const { data: items = [], isLoading: itemsLoading, error: itemsError, refetch: refetchItems } = useItemsWithStock()
 
   const { data: recentGRNs } = useQuery({
     queryKey: ['recent-grns-detailed'],
@@ -178,6 +179,24 @@ const StockOperations = () => {
         <p className="text-muted-foreground">Manage stock receipts (GRN) and issues</p>
       </div>
 
+      {itemsError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error loading items: {itemsError.message}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchItems()}
+              className="ml-2"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Tabs defaultValue="grn" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="grn">Goods Receipt Note (GRN)</TabsTrigger>
@@ -238,6 +257,7 @@ const StockOperations = () => {
                         onValueChange={setSelectedItem}
                         placeholder="Search and select item..."
                         showStockLevel={true}
+                        isLoading={itemsLoading}
                       />
                     </div>
 
@@ -387,6 +407,7 @@ const StockOperations = () => {
                         onValueChange={setSelectedItem}
                         placeholder="Search and select item..."
                         showStockLevel={true}
+                        isLoading={itemsLoading}
                       />
                     </div>
 

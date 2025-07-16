@@ -1,6 +1,6 @@
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Package } from "lucide-react"
+import { Check, ChevronsUpDown, Package, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +25,7 @@ interface ItemComboboxProps {
     uom: string
     category_name?: string
     current_qty?: number
+    status?: string
   }>
   value: string
   onValueChange: (value: string) => void
@@ -32,6 +33,7 @@ interface ItemComboboxProps {
   disabled?: boolean
   showStockLevel?: boolean
   className?: string
+  isLoading?: boolean
 }
 
 export function ItemCombobox({
@@ -41,7 +43,8 @@ export function ItemCombobox({
   placeholder = "Select item...",
   disabled = false,
   showStockLevel = false,
-  className
+  className,
+  isLoading = false
 }: ItemComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
@@ -57,6 +60,22 @@ export function ItemCombobox({
     if (!qty || qty === 0) return { label: "Out of Stock", color: "destructive" }
     if (qty < 10) return { label: "Low Stock", color: "warning" }
     return { label: "In Stock", color: "success" }
+  }
+
+  if (isLoading) {
+    return (
+      <Button
+        variant="outline"
+        disabled
+        className={cn("w-full justify-between", className)}
+      >
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Loading items...</span>
+        </div>
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+    )
   }
 
   return (
@@ -91,7 +110,12 @@ export function ItemCombobox({
             onValueChange={setSearch}
           />
           <CommandList>
-            <CommandEmpty>No items found.</CommandEmpty>
+            <CommandEmpty>
+              {items.length === 0 ? 
+                "No items found. Please check if items are properly configured." :
+                "No items match your search."
+              }
+            </CommandEmpty>
             <CommandGroup>
               {filteredItems.map((item) => {
                 const stockStatus = showStockLevel ? getStockStatus(item.current_qty) : null

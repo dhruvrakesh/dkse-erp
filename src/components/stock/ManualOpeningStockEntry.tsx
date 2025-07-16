@@ -9,14 +9,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ItemCombobox } from "@/components/ui/item-combobox"
 import { useItemsWithStock } from "@/hooks/useItemsWithStock"
 import { useToast } from "@/hooks/use-toast"
-import { Plus, Package } from "lucide-react"
+import { Plus, Package, AlertCircle, RefreshCw } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export function ManualOpeningStockEntry() {
   const [selectedItem, setSelectedItem] = useState("")
   const [isNewItem, setIsNewItem] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { data: items = [] } = useItemsWithStock()
+  const { data: items = [], isLoading: itemsLoading, error: itemsError, refetch: refetchItems } = useItemsWithStock()
 
   const createOpeningStockMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -97,6 +98,24 @@ export function ManualOpeningStockEntry() {
         <CardDescription>Add opening stock for individual items</CardDescription>
       </CardHeader>
       <CardContent>
+        {itemsError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Error loading items: {itemsError.message}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchItems()}
+                className="ml-2"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Item Selection</Label>
@@ -129,6 +148,7 @@ export function ManualOpeningStockEntry() {
                 onValueChange={setSelectedItem}
                 placeholder="Search and select item..."
                 showStockLevel={true}
+                isLoading={itemsLoading}
               />
             </div>
           ) : (
