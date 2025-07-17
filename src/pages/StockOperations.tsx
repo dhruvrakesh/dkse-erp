@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { TemplateDownload } from "@/components/ui/template-download"
 import { ItemCombobox } from "@/components/ui/item-combobox"
+import { PaginatedTable } from "@/components/ui/paginated-table"
 import { useItemsWithStock } from "@/hooks/useItemsWithStock"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Minus, AlertCircle, RefreshCw } from "lucide-react"
@@ -41,7 +42,6 @@ const StockOperations = () => {
           item_master(item_name, uom)
         `)
         .order('created_at', { ascending: false })
-        .limit(20)
       
       if (error) throw error
       return data || []
@@ -58,7 +58,6 @@ const StockOperations = () => {
           item_master(item_name, uom)
         `)
         .order('created_at', { ascending: false })
-        .limit(20)
       
       if (error) throw error
       return data || []
@@ -352,33 +351,65 @@ const StockOperations = () => {
             </TabsContent>
           </Tabs>
 
-          {/* Recent GRNs */}
+          {/* Recent GRNs with Pagination */}
           <Card>
             <CardHeader>
               <CardTitle>Recent GRN Entries</CardTitle>
-              <CardDescription>Latest stock receipts</CardDescription>
+              <CardDescription>All stock receipts with search and pagination</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>GRN No.</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentGRNs?.slice(0, 10).map((grn) => (
-                    <TableRow key={grn.id}>
-                      <TableCell className="font-mono">{grn.grn_number}</TableCell>
-                      <TableCell>{grn.item_master?.item_name}</TableCell>
-                      <TableCell className="font-mono text-green-600">+{grn.qty_received}</TableCell>
-                      <TableCell>{new Date(grn.date).toLocaleDateString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <PaginatedTable
+                data={recentGRNs || []}
+                columns={[
+                  {
+                    key: 'grn_number',
+                    header: 'GRN No.',
+                    sortable: true,
+                    render: (value) => <span className="font-mono">{value}</span>
+                  },
+                  {
+                    key: 'date',
+                    header: 'Date',
+                    sortable: true,
+                    render: (value) => new Date(value).toLocaleDateString()
+                  },
+                  {
+                    key: 'item_code',
+                    header: 'Item Code',
+                    sortable: true,
+                    render: (value) => <span className="font-mono text-sm">{value}</span>
+                  },
+                  {
+                    key: 'item_master',
+                    header: 'Item Name',
+                    sortable: false,
+                    render: (value) => value?.item_name || 'Unknown'
+                  },
+                  {
+                    key: 'qty_received',
+                    header: 'Quantity',
+                    sortable: true,
+                    render: (value, item) => (
+                      <span className="font-mono text-green-600">
+                        +{value} {item.item_master?.uom || ''}
+                      </span>
+                    )
+                  },
+                  {
+                    key: 'vendor',
+                    header: 'Vendor',
+                    sortable: true
+                  },
+                  {
+                    key: 'amount_inr',
+                    header: 'Amount (INR)',
+                    sortable: true,
+                    render: (value) => value ? `₹${Number(value).toLocaleString()}` : '-'
+                  }
+                ]}
+                searchKeys={['grn_number', 'item_code', 'vendor']}
+                pageSize={20}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -502,33 +533,64 @@ const StockOperations = () => {
             </TabsContent>
           </Tabs>
 
-          {/* Recent Issues */}
+          {/* Recent Issues with Pagination */}
           <Card>
             <CardHeader>
               <CardTitle>Recent Issues</CardTitle>
-              <CardDescription>Latest stock consumption</CardDescription>
+              <CardDescription>All stock consumption with search and pagination</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Purpose</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentIssues?.slice(0, 10).map((issue) => (
-                    <TableRow key={issue.id}>
-                      <TableCell>{issue.item_master?.item_name}</TableCell>
-                      <TableCell className="font-mono text-red-600">-{issue.qty_issued}</TableCell>
-                      <TableCell>{issue.purpose}</TableCell>
-                      <TableCell>{new Date(issue.date).toLocaleDateString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <PaginatedTable
+                data={recentIssues || []}
+                columns={[
+                  {
+                    key: 'date',
+                    header: 'Date',
+                    sortable: true,
+                    render: (value) => new Date(value).toLocaleDateString()
+                  },
+                  {
+                    key: 'item_code',
+                    header: 'Item Code',
+                    sortable: true,
+                    render: (value) => <span className="font-mono text-sm">{value}</span>
+                  },
+                  {
+                    key: 'item_master',
+                    header: 'Item Name',
+                    sortable: false,
+                    render: (value) => value?.item_name || 'Unknown'
+                  },
+                  {
+                    key: 'qty_issued',
+                    header: 'Quantity',
+                    sortable: true,
+                    render: (value, item) => (
+                      <span className="font-mono text-red-600">
+                        -{value} {item.item_master?.uom || ''}
+                      </span>
+                    )
+                  },
+                  {
+                    key: 'purpose',
+                    header: 'Purpose',
+                    sortable: true,
+                    render: (value) => value || '-'
+                  },
+                  {
+                    key: 'remarks',
+                    header: 'Remarks',
+                    sortable: false,
+                    render: (value) => value ? (
+                      <span className="text-sm text-muted-foreground truncate max-w-[200px] block">
+                        {value}
+                      </span>
+                    ) : '-'
+                  }
+                ]}
+                searchKeys={['item_code', 'purpose']}
+                pageSize={20}
+              />
             </CardContent>
           </Card>
         </TabsContent>

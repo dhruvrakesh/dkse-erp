@@ -108,10 +108,15 @@ const StockSummary = () => {
   }
 
   const getDaysOfCoverBadge = (days: number | null) => {
-    if (!days) return <Badge variant="secondary">N/A</Badge>
+    if (!days || days === 999999) return <Badge variant="secondary">∞ (No Usage)</Badge>
     if (days > 30) return <Badge variant="default" className="bg-green-100 text-green-800">Good ({days.toFixed(0)}d)</Badge>
     if (days > 10) return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Medium ({days.toFixed(0)}d)</Badge>
     return <Badge variant="destructive">Critical ({days.toFixed(0)}d)</Badge>
+  }
+
+  const getValidationBadge = (status: string) => {
+    if (status === 'OK') return <Badge variant="default" className="bg-green-100 text-green-800">✓ OK</Badge>
+    return <Badge variant="destructive">⚠ Mismatch</Badge>
   }
 
   const handleSort = (field: SortField) => {
@@ -130,9 +135,14 @@ const StockSummary = () => {
       'Category': item.category_name,
       'Opening Qty': item.opening_qty,
       'Current Qty': item.current_qty,
+      'Calculated Qty': item.calculated_qty,
       'Total GRN': item.total_grn_qty,
       'Total Issued': item.total_issued_qty,
-      'Days of Cover': item.days_of_cover
+      'Issue 30d': item.issue_30d,
+      'Unique Issue Days': item.unique_issue_days,
+      'Consumption Rate/Day': item.consumption_rate_per_day,
+      'Days of Cover': item.days_of_cover,
+      'Stock Validation': item.stock_validation_status
     }))
 
     const csvString = [
@@ -362,55 +372,65 @@ const StockSummary = () => {
                       )}
                     </div>
                   </TableHead>
-                  <TableHead>Total GRN</TableHead>
-                  <TableHead>Total Issued</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead 
-                    className="cursor-pointer hover:bg-muted"
-                    onClick={() => handleSort('days_of_cover')}
-                  >
-                    <div className="flex items-center">
-                      Days Cover
-                      {sortField === 'days_of_cover' && (
-                        sortOrder === 'asc' ? <SortAsc className="ml-1 h-4 w-4" /> : <SortDesc className="ml-1 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
+                   <TableHead>Total GRN</TableHead>
+                   <TableHead>Total Issued</TableHead>
+                   <TableHead>30d Issues</TableHead>
+                   <TableHead>Issue Days</TableHead>
+                   <TableHead>Daily Rate</TableHead>
+                   <TableHead>Status</TableHead>
+                   <TableHead>Validation</TableHead>
+                   <TableHead 
+                     className="cursor-pointer hover:bg-muted"
+                     onClick={() => handleSort('days_of_cover')}
+                   >
+                     <div className="flex items-center">
+                       Days Cover
+                       {sortField === 'days_of_cover' && (
+                         sortOrder === 'asc' ? <SortAsc className="ml-1 h-4 w-4" /> : <SortDesc className="ml-1 h-4 w-4" />
+                       )}
+                     </div>
+                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      <div className="flex items-center justify-center">
-                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                        Loading stock data...
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredAndSortedData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      No items found matching your criteria
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredAndSortedData.map((item) => (
-                    <TableRow key={item.item_code}>
-                      <TableCell className="font-medium">{item.item_name}</TableCell>
-                      <TableCell className="font-mono text-sm">{item.item_code}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{item.category_name || 'Uncategorized'}</Badge>
-                      </TableCell>
-                      <TableCell className="font-mono">{item.opening_qty || 0}</TableCell>
-                      <TableCell className="font-mono font-bold">{item.current_qty || 0}</TableCell>
-                      <TableCell className="font-mono text-green-600">{item.total_grn_qty || 0}</TableCell>
-                      <TableCell className="font-mono text-red-600">{item.total_issued_qty || 0}</TableCell>
-                      <TableCell>{getStockLevelBadge(item.current_qty || 0)}</TableCell>
-                      <TableCell>{getDaysOfCoverBadge(item.days_of_cover)}</TableCell>
-                    </TableRow>
-                  ))
-                )}
+                 {isLoading ? (
+                   <TableRow>
+                     <TableCell colSpan={12} className="text-center py-8">
+                       <div className="flex items-center justify-center">
+                         <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                         Loading stock data...
+                       </div>
+                     </TableCell>
+                   </TableRow>
+                 ) : filteredAndSortedData.length === 0 ? (
+                   <TableRow>
+                     <TableCell colSpan={12} className="text-center py-8">
+                       No items found matching your criteria
+                     </TableCell>
+                   </TableRow>
+                 ) : (
+                   filteredAndSortedData.map((item) => (
+                     <TableRow key={item.item_code}>
+                       <TableCell className="font-medium">{item.item_name}</TableCell>
+                       <TableCell className="font-mono text-sm">{item.item_code}</TableCell>
+                       <TableCell>
+                         <Badge variant="outline">{item.category_name || 'Uncategorized'}</Badge>
+                       </TableCell>
+                       <TableCell className="font-mono">{item.opening_qty || 0}</TableCell>
+                       <TableCell className="font-mono font-bold">{item.current_qty || 0}</TableCell>
+                       <TableCell className="font-mono text-green-600">{item.total_grn_qty || 0}</TableCell>
+                       <TableCell className="font-mono text-red-600">{item.total_issued_qty || 0}</TableCell>
+                       <TableCell className="font-mono text-orange-600">{item.issue_30d || 0}</TableCell>
+                       <TableCell className="font-mono text-blue-600">{item.unique_issue_days || 0}</TableCell>
+                       <TableCell className="font-mono text-purple-600">
+                         {item.consumption_rate_per_day || 0}
+                       </TableCell>
+                       <TableCell>{getStockLevelBadge(item.current_qty || 0)}</TableCell>
+                       <TableCell>{getValidationBadge(item.stock_validation_status || 'OK')}</TableCell>
+                       <TableCell>{getDaysOfCoverBadge(item.days_of_cover)}</TableCell>
+                     </TableRow>
+                   ))
+                 )}
               </TableBody>
             </Table>
           </div>
