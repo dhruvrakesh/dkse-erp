@@ -24,6 +24,8 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GRNCSVUpload } from "@/components/csv/GRNCSVUpload"
 import { IssueCSVUpload } from "@/components/csv/IssueCSVUpload"
+import { EditableGRNRow } from "@/components/stock/EditableGRNRow"
+import { EditableIssueRow } from "@/components/stock/EditableIssueRow"
 
 const StockOperations = () => {
   const [selectedItem, setSelectedItem] = useState("")
@@ -33,15 +35,13 @@ const StockOperations = () => {
   const { data: items = [], isLoading: itemsLoading, error: itemsError, refetch: refetchItems } = useItemsWithStock()
 
   const { data: recentGRNs } = useQuery({
-    queryKey: ['recent-grns-detailed'],
+    queryKey: ['recent-grn'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('grn_log')
-        .select(`
-          *,
-          item_master(item_name, uom)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
+        .limit(50)
       
       if (error) throw error
       return data || []
@@ -49,15 +49,13 @@ const StockOperations = () => {
   })
 
   const { data: recentIssues } = useQuery({
-    queryKey: ['recent-issues-detailed'],
+    queryKey: ['recent-issues'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('issue_log')
-        .select(`
-          *,
-          item_master(item_name, uom)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
+        .limit(50)
       
       if (error) throw error
       return data || []
@@ -75,7 +73,7 @@ const StockOperations = () => {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recent-grns-detailed'] })
+      queryClient.invalidateQueries({ queryKey: ['recent-grn'] })
       queryClient.invalidateQueries({ queryKey: ['stock-summary'] })
       queryClient.invalidateQueries({ queryKey: ['items-with-stock'] })
       toast({
@@ -116,7 +114,7 @@ const StockOperations = () => {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recent-issues-detailed'] })
+      queryClient.invalidateQueries({ queryKey: ['recent-issues'] })
       queryClient.invalidateQueries({ queryKey: ['stock-summary'] })
       queryClient.invalidateQueries({ queryKey: ['items-with-stock'] })
       toast({
@@ -344,72 +342,43 @@ const StockOperations = () => {
 
             <TabsContent value="bulk">
               <GRNCSVUpload onUploadComplete={() => {
-                queryClient.invalidateQueries({ queryKey: ['recent-grns-detailed'] });
+                queryClient.invalidateQueries({ queryKey: ['recent-grn'] });
                 queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
                 queryClient.invalidateQueries({ queryKey: ['items-with-stock'] });
               }} />
             </TabsContent>
           </Tabs>
 
-          {/* Recent GRNs with Pagination */}
+          {/* Recent GRNs with Edit/Delete */}
           <Card>
             <CardHeader>
               <CardTitle>Recent GRN Entries</CardTitle>
-              <CardDescription>All stock receipts with search and pagination</CardDescription>
+              <CardDescription>Manage stock receipts with inline editing</CardDescription>
             </CardHeader>
             <CardContent>
-              <PaginatedTable
-                data={recentGRNs || []}
-                columns={[
-                  {
-                    key: 'grn_number',
-                    header: 'GRN No.',
-                    sortable: true,
-                    render: (value) => <span className="font-mono">{value}</span>
-                  },
-                  {
-                    key: 'date',
-                    header: 'Date',
-                    sortable: true,
-                    render: (value) => new Date(value).toLocaleDateString()
-                  },
-                  {
-                    key: 'item_code',
-                    header: 'Item Code',
-                    sortable: true,
-                    render: (value) => <span className="font-mono text-sm">{value}</span>
-                  },
-                  {
-                    key: 'item_master',
-                    header: 'Item Name',
-                    sortable: false,
-                    render: (value) => value?.item_name || 'Unknown'
-                  },
-                  {
-                    key: 'qty_received',
-                    header: 'Quantity',
-                    sortable: true,
-                    render: (value, item) => (
-                      <span className="font-mono text-green-600">
-                        +{value} {item.item_master?.uom || ''}
-                      </span>
-                    )
-                  },
-                  {
-                    key: 'vendor',
-                    header: 'Vendor',
-                    sortable: true
-                  },
-                  {
-                    key: 'amount_inr',
-                    header: 'Amount (INR)',
-                    sortable: true,
-                    render: (value) => value ? `₹${Number(value).toLocaleString()}` : '-'
-                  }
-                ]}
-                searchKeys={['grn_number', 'item_code', 'vendor']}
-                pageSize={20}
-              />
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>GRN Number</TableHead>
+                      <TableHead>Item Code</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>UOM</TableHead>
+                      <TableHead>Invoice Number</TableHead>
+                      <TableHead>Vendor</TableHead>
+                      <TableHead>Amount (INR)</TableHead>
+                      <TableHead>Remarks</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentGRNs?.map((grn) => (
+                      <EditableGRNRow key={grn.id} grn={grn} />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -526,71 +495,46 @@ const StockOperations = () => {
 
             <TabsContent value="bulk">
               <IssueCSVUpload onUploadComplete={() => {
-                queryClient.invalidateQueries({ queryKey: ['recent-issues-detailed'] });
+                queryClient.invalidateQueries({ queryKey: ['recent-issues'] });
                 queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
                 queryClient.invalidateQueries({ queryKey: ['items-with-stock'] });
               }} />
             </TabsContent>
           </Tabs>
 
-          {/* Recent Issues with Pagination */}
+          {/* Recent Issues with Edit/Delete */}
           <Card>
             <CardHeader>
               <CardTitle>Recent Issues</CardTitle>
-              <CardDescription>All stock consumption with search and pagination</CardDescription>
+              <CardDescription>Manage stock consumption with inline editing</CardDescription>
             </CardHeader>
             <CardContent>
-              <PaginatedTable
-                data={recentIssues || []}
-                columns={[
-                  {
-                    key: 'date',
-                    header: 'Date',
-                    sortable: true,
-                    render: (value) => new Date(value).toLocaleDateString()
-                  },
-                  {
-                    key: 'item_code',
-                    header: 'Item Code',
-                    sortable: true,
-                    render: (value) => <span className="font-mono text-sm">{value}</span>
-                  },
-                  {
-                    key: 'item_master',
-                    header: 'Item Name',
-                    sortable: false,
-                    render: (value) => value?.item_name || 'Unknown'
-                  },
-                  {
-                    key: 'qty_issued',
-                    header: 'Quantity',
-                    sortable: true,
-                    render: (value, item) => (
-                      <span className="font-mono text-red-600">
-                        -{value} {item.item_master?.uom || ''}
-                      </span>
-                    )
-                  },
-                  {
-                    key: 'purpose',
-                    header: 'Purpose',
-                    sortable: true,
-                    render: (value) => value || '-'
-                  },
-                  {
-                    key: 'remarks',
-                    header: 'Remarks',
-                    sortable: false,
-                    render: (value) => value ? (
-                      <span className="text-sm text-muted-foreground truncate max-w-[200px] block">
-                        {value}
-                      </span>
-                    ) : '-'
-                  }
-                ]}
-                searchKeys={['item_code', 'purpose']}
-                pageSize={20}
-              />
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Item Code</TableHead>
+                      <TableHead>Quantity Issued</TableHead>
+                      <TableHead>Purpose</TableHead>
+                      <TableHead>Remarks</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentIssues?.map((issue) => {
+                      const itemStock = items?.find(item => item.item_code === issue.item_code);
+                      return (
+                        <EditableIssueRow 
+                          key={issue.id} 
+                          issue={issue} 
+                          availableStock={itemStock?.current_qty || 0}
+                        />
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

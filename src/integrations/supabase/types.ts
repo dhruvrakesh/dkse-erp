@@ -663,6 +663,44 @@ export type Database = {
           },
         ]
       }
+      grn_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          grn_id: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          grn_id: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          grn_id?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grn_audit_log_grn_id_fkey"
+            columns: ["grn_id"]
+            isOneToOne: false
+            referencedRelation: "grn_log"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grn_log: {
         Row: {
           amount_inr: number | null
@@ -710,6 +748,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "item_master"
             referencedColumns: ["item_code"]
+          },
+        ]
+      }
+      issue_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          issue_id: string
+          new_values: Json | null
+          old_values: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          issue_id: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          issue_id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_audit_log_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issue_log"
+            referencedColumns: ["id"]
           },
         ]
       }
