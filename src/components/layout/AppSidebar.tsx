@@ -41,6 +41,7 @@ const mainItems = [
   { title: "Item Master", url: "/items", icon: Package },
   { title: "Stock Operations", url: "/stock", icon: ShoppingCart },
   { title: "Stock Summary", url: "/stock-summary", icon: BarChart3 },
+  { title: "Stock Analytics", url: "/stock-analytics", icon: TrendingUp },
   { title: "Opening Stock", url: "/opening-stock", icon: Inbox },
   { title: "Opening Stock Summary", url: "/opening-stock-summary", icon: ClipboardList },
   { title: "Stock Alerts", url: "/stock-alerts", icon: AlertTriangle },

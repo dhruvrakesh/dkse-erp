@@ -12,6 +12,7 @@ import ItemMaster from "./pages/ItemMaster";
 import StockOperations from "./pages/StockOperations";
 import OpeningStock from "./pages/OpeningStock";
 import StockSummary from "./pages/StockSummary";
+import StockAnalytics from "./pages/StockAnalytics";
 import OpeningStockSummary from "./pages/OpeningStockSummary";
 import Categories from "./pages/Categories";
 import StockAlerts from "./pages/StockAlerts";
@@ -42,6 +43,7 @@ const App = () => (
                     <Route path="/items" element={<ItemMaster />} />
                     <Route path="/stock" element={<StockOperations />} />
                     <Route path="/stock-summary" element={<StockSummary />} />
+                    <Route path="/stock-analytics" element={<StockAnalytics />} />
                     <Route path="/opening-stock" element={<OpeningStock />} />
                     <Route path="/opening-stock-summary" element={<OpeningStockSummary />} />
                     <Route path="/categories" element={<Categories />} />

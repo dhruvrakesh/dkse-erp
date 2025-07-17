@@ -138,10 +138,8 @@ const StockSummary = () => {
       'Calculated Qty': item.calculated_qty,
       'Total GRN': item.total_grn_qty,
       'Total Issued': item.total_issued_qty,
-      'Issue 30d': item.issue_30d,
-      'Unique Issue Days': item.unique_issue_days,
-      'Consumption Rate/Day': item.consumption_rate_per_day,
-      'Days of Cover': item.days_of_cover,
+       'Issue 30d': item.issue_30d,
+       'Days of Cover': item.days_of_cover,
       'Stock Validation': item.stock_validation_status
     }))
 
@@ -375,8 +373,6 @@ const StockSummary = () => {
                    <TableHead>Total GRN</TableHead>
                    <TableHead>Total Issued</TableHead>
                    <TableHead>30d Issues</TableHead>
-                   <TableHead>Issue Days</TableHead>
-                   <TableHead>Daily Rate</TableHead>
                    <TableHead>Status</TableHead>
                    <TableHead>Validation</TableHead>
                    <TableHead 
@@ -395,7 +391,7 @@ const StockSummary = () => {
               <TableBody>
                  {isLoading ? (
                    <TableRow>
-                     <TableCell colSpan={12} className="text-center py-8">
+                      <TableCell colSpan={10} className="text-center py-8">
                        <div className="flex items-center justify-center">
                          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
                          Loading stock data...
@@ -404,7 +400,7 @@ const StockSummary = () => {
                    </TableRow>
                  ) : filteredAndSortedData.length === 0 ? (
                    <TableRow>
-                     <TableCell colSpan={12} className="text-center py-8">
+                     <TableCell colSpan={10} className="text-center py-8">
                        No items found matching your criteria
                      </TableCell>
                    </TableRow>
@@ -420,12 +416,8 @@ const StockSummary = () => {
                        <TableCell className="font-mono font-bold">{item.current_qty || 0}</TableCell>
                        <TableCell className="font-mono text-green-600">{item.total_grn_qty || 0}</TableCell>
                        <TableCell className="font-mono text-red-600">{item.total_issued_qty || 0}</TableCell>
-                       <TableCell className="font-mono text-orange-600">{item.issue_30d || 0}</TableCell>
-                       <TableCell className="font-mono text-blue-600">{item.unique_issue_days || 0}</TableCell>
-                       <TableCell className="font-mono text-purple-600">
-                         {item.consumption_rate_per_day || 0}
-                       </TableCell>
-                       <TableCell>{getStockLevelBadge(item.current_qty || 0)}</TableCell>
+                        <TableCell className="font-mono text-orange-600">{item.issue_30d || 0}</TableCell>
+                        <TableCell>{getStockLevelBadge(item.current_qty || 0)}</TableCell>
                        <TableCell>{getValidationBadge(item.stock_validation_status || 'OK')}</TableCell>
                        <TableCell>{getDaysOfCoverBadge(item.days_of_cover)}</TableCell>
                      </TableRow>
