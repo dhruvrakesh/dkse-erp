@@ -1505,17 +1505,22 @@ export type Database = {
         Row: {
           calculated_qty: number | null
           category_name: string | null
-          consumption_rate_per_day: number | null
+          consumption_rate_30d: number | null
+          consumption_rate_7d: number | null
+          consumption_rate_90d: number | null
           current_qty: number | null
           days_of_cover: number | null
+          days_of_cover_7d: number | null
+          days_of_cover_90d: number | null
           issue_30d: number | null
+          issue_7d: number | null
+          issue_90d: number | null
           item_code: string | null
           item_name: string | null
           opening_qty: number | null
           stock_validation_status: string | null
           total_grn_qty: number | null
           total_issued_qty: number | null
-          unique_issue_days: number | null
         }
         Relationships: [
           {
